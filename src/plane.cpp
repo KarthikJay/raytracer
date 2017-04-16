@@ -28,7 +28,7 @@ void Plane::print(std::ostream &out) const
 	out << "- Type: Plane" << std::endl;
 	out << "- Normal: {" << this->normal.format(SpaceFormat) << "}" << std::endl;
 	out << "- Distance: " << this->distance << std::endl;
-	out << "- Color: {" << this->color.format(SpaceFormat);
+	out << "- Color: {" << this->color.format(SpaceFormat) << "}" << std::endl;
 	out << "  - Material:" << std::endl;
 	out << "  - Ambient: " << this->ambient << std::endl;
 	out << "  - Diffuse: " << this->diffuse << std::endl;
