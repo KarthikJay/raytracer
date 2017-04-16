@@ -278,6 +278,8 @@ void pixelray(unsigned int width, unsigned int height,
 {
 	Ray temp;
 	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
+	Eigen::Vector3d look = -view.right.cross(view.up.normalized());
+	Eigen::Vector3d dist;
 
 	temp.origin = view.position;
 	std::cout << "Pixel: [" << x << ", " << y << "] ";
@@ -286,10 +288,9 @@ void pixelray(unsigned int width, unsigned int height,
 	double u = -0.5 + ((x + 0.5) / width);
 	double v = -0.5 + ((y + 0.5) / height);
 	double w = -1;
-	u *= view.right.norm();
-	v *= view.up.norm();
-	w *= -(view.look_at.norm() - view.position.normalized().norm());
-	temp.direction = Eigen::Vector3d(u, v, w);
+
+	dist = (view.right * u) + (view.up.normalized() * v) + (w * look.normalized());
+	temp.direction = dist.normalized();
 	std::cout << temp.direction.format(SpaceFormat) << "}" << std::endl;
 }
 
