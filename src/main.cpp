@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <eigen3/Eigen/Dense>
 
+#include "ray.hpp"
 #include "light.hpp"
 #include "shape.hpp"
 #include "sphere.hpp"
@@ -23,6 +24,17 @@ enum class Command : int
 	FIRSTHIT = 4
 };
 
+void parse_optional(int argc, char *argv[], std::vector<unsigned int> &optional)
+{
+	unsigned int temp;
+	for (int i = 3; i < argc; i++)
+	{
+		std::stringstream ss(argv[i]);
+		ss >> temp;
+		optional.push_back(temp);
+	}
+}
+
 //TODO(kjayakum): Have filename support being in a folder called resources
 Command is_valid_command(int argc, char *argv[])
 {
@@ -37,6 +49,7 @@ Command is_valid_command(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
+	// TODO(kjayakum): Add further checks to make sure optional arguments are provided for each command
 	cur = std::string(argv[1]);
 	if(cur == "render")
 		type = Command::RENDER;
@@ -260,14 +273,36 @@ void print_scene(Camera &view, std::vector<std::shared_ptr<Shape>> &objects,
 	}
 }
 
+void pixelray(unsigned int width, unsigned int height,
+				unsigned int x, unsigned int y, Camera &view)
+{
+	Ray temp;
+	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
+
+	temp.origin = view.position;
+	std::cout << "Pixel: [" << x << ", " << y << "] ";
+	std::cout << "Ray: {" << temp.origin.format(SpaceFormat) << "} -> {";
+
+	double u = -0.5 + ((x + 0.5) / width);
+	double v = -0.5 + ((y + 0.5) / height);
+	double w = -1;
+	u *= view.right.norm();
+	v *= view.up.norm();
+	w *= -(view.look_at.norm() - view.position.normalized().norm());
+	temp.direction = Eigen::Vector3d(u, v, w);
+	std::cout << temp.direction.format(SpaceFormat) << "}" << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
 	std::vector<std::shared_ptr<Shape>> objects;
 	std::vector<std::shared_ptr<Light>> lights;
+	std::vector<unsigned int> options;
 	Camera view;
 
 	Command type = is_valid_command(argc, argv);
 	parse_scene(argv[2], view, lights, objects);
+	parse_optional(argc, argv, options);
 
 	switch(type)
 	{
@@ -276,6 +311,7 @@ int main(int argc, char *argv[])
 		case Command::FIRSTHIT:
 			break;
 		case Command::PIXELRAY:
+			pixelray(options[0], options[1], options[2], options[3], view);
 			break;
 		case Command::SCENEINFO:
 			print_scene(view, objects, lights);
