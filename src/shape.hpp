@@ -14,6 +14,8 @@ public:
 	double diffuse;
 	Eigen::Vector3d color;
 
+	// TODO(kjayakum): Figure out neater implementation using stream manipulators.
+	// virtual void print_brief();
 	friend std::ostream &operator<< (std::ostream &out, const Shape &s)
 	{
 		s.print(out);

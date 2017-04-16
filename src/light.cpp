@@ -17,7 +17,6 @@ std::ostream &operator<< (std::ostream &out, const Light &l)
 {
 	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
 
-	out << "Camera:" << std::endl;
 	out << "- Location: {" << l.position.format(SpaceFormat) << "}" << std::endl;
 	out << "- Color: {" << l.color.format(SpaceFormat) << "}" << std::endl;
 

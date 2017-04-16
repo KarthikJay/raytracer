@@ -1,18 +1,18 @@
-#ifndef SPHERE_HPP
-#define SPHERE_HPP
+#ifndef PLANE_HPP
+#define	PLANE_HPP
 
 #include <eigen3/Eigen/Dense>
 
 #include "shape.hpp"
 
-class Sphere : public Shape
+class Plane : public Shape
 {
 public:
-	double radius;
-	Eigen::Vector3d center;
+	double distance;
+	Eigen::Vector3d normal;
 
-	Sphere();
-	Sphere(Eigen::Vector3d center, double radius,
+	Plane();
+	Plane(Eigen::Vector3d normal, double distance,
 			Eigen::Vector3d color, double ambient, double diffuse);
 private:
 	void print(std::ostream &out) const;

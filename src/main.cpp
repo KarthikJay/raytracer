@@ -11,6 +11,7 @@
 #include "light.hpp"
 #include "shape.hpp"
 #include "sphere.hpp"
+#include "plane.hpp"
 #include "camera.hpp"
 
 enum class Command : int 
@@ -145,18 +146,14 @@ void parse_scene(char *filename, Camera &view, std::vector<std::shared_ptr<Light
 		}
 		else if(line.find("sphere") != std::string::npos)
 		{
-
 			std::stringstream ss(line);
 			objects.push_back(std::make_shared<Sphere>());
-			// TODO(kjayakum): Figure out why static_cast is invalid
-			std::shared_ptr<Sphere> t = std::static_pointer_cast<Sphere>(objects.back());
-			Sphere &cur = *t;
+			Sphere &cur = *(std::static_pointer_cast<Sphere>(objects.back()));
 
 			ss >> temp;
 			ss >> cur.center(0);
 			ss >> cur.center(1);
 			ss >> cur.center(2);
-			//std::cout << cur << std::endl;
 			ss >> cur.radius;
 
 			// TODO(kjayakum): Will not fully clean up or check lines following camera
@@ -195,10 +192,72 @@ void parse_scene(char *filename, Camera &view, std::vector<std::shared_ptr<Light
 		}
 		else if(line.find("plane") != std::string::npos)
 		{
-			std::cout << "Found a plane" << std::endl;
+			std::stringstream ss(line);
+			objects.push_back(std::make_shared<Plane>());
+			Plane &cur = *(std::static_pointer_cast<Plane>(objects.back()));
+
+			ss >> temp;
+			ss >> cur.normal(0);
+			ss >> cur.normal(1);
+			ss >> cur.normal(2);
+			ss >> cur.distance;
+
+			// TODO(kjayakum): Will not fully clean up or check lines following camera
+			// TODO(kjayakum): Look into stringstream ignore
+			while(line != "}")
+			{
+				getline(infile, line);
+				std::replace(line.begin(), line.end(), '{', ' ');
+				std::replace(line.begin(), line.end(), '<', ' ');
+				std::replace(line.begin(), line.end(), '>', ' ');
+				std::replace(line.begin(), line.end(), ',', ' ');
+				// TODO(kjayakum): Don't declare temporary objects in loop
+				std::stringstream ss2(line);
+				ss2 >> temp;
+				if(temp == "pigment")
+				{
+					ss2 >> temp;
+					ss2 >> temp;
+					ss2 >> cur.color(0);
+					ss2 >> cur.color(1);
+					ss2 >> cur.color(2);
+				}
+				else if(temp == "finish")
+				{
+					//TODO(kjayakum): Figure out better way to parse finishes
+					for(int i = 0; i < 2; i++)
+					{
+						ss2 >> temp;
+						if(temp == "ambient")
+							ss2 >> cur.ambient;
+						else if(temp == "diffuse")
+							ss2 >> cur.diffuse;
+					}
+				}
+			}
 		}
 	}
 	infile.close();
+}
+
+void print_scene(Camera &view, std::vector<std::shared_ptr<Shape>> &objects,
+					std::vector<std::shared_ptr<Light>> &lights)
+{
+	std::cout << "Camera:" << std::endl << view;
+	std::cout << std::endl << "---" << std::endl << std::endl;
+	std::cout << lights.size() << " light(s)" << std::endl;
+	for(unsigned int i = 0; i < lights.size(); i++)
+	{
+		std::cout << std::endl << "Light[" << i << "]:" << std::endl;
+		std::cout << *lights[i];
+	}
+	std::cout << std::endl << "---" << std::endl << std::endl;
+	std::cout << objects.size() << " object(s)" << std::endl;
+	for(unsigned int i = 0; i < objects.size(); i++)
+	{
+		std::cout << std::endl << "Object[" << i << "]:" << std::endl;
+		std::cout << *objects[i];
+	}
 }
 
 int main(int argc, char *argv[])
@@ -209,5 +268,20 @@ int main(int argc, char *argv[])
 
 	Command type = is_valid_command(argc, argv);
 	parse_scene(argv[2], view, lights, objects);
+
+	switch(type)
+	{
+		case Command::RENDER:
+			break;
+		case Command::FIRSTHIT:
+			break;
+		case Command::PIXELRAY:
+			break;
+		case Command::SCENEINFO:
+			print_scene(view, objects, lights);
+			break;
+		case Command::INVALID:
+			break;
+	}
 	return 0;
 }
