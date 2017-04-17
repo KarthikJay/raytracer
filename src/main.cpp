@@ -18,7 +18,10 @@
 #include "sphere.hpp"
 #include "plane.hpp"
 #include "camera.hpp"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+
 
 // TODO(kjayakum): Refactor this file... it's bad...
 enum class Command : int 
@@ -354,9 +357,9 @@ void render(unsigned int width, unsigned int height, Camera &view,
 	const std::string filename = "output.png";
 	unsigned char *data = new unsigned char[width * height * num_channels];
 
-	for(unsigned int y = 0; y < height; y++)
+	for(unsigned int y = 0; y < height; ++y)
 	{
-		for(unsigned int x = 0; x < width; x++)
+		for(unsigned int x = 0; x < width; ++x)
 		{
 			double u = -0.5 + ((x + 0.5) / width);
 			double v = -0.5 + ((y + 0.5) / height);
@@ -399,7 +402,7 @@ void render(unsigned int width, unsigned int height, Camera &view,
 		}
 	}
 
-	//stbi_write_png(filename.c_str(), width, height, num_channels, data, height * num_channels);
+	stbi_write_png(filename.c_str(), width, height, num_channels, data, width * num_channels);
 	delete[] data;
 }
 
@@ -417,6 +420,7 @@ int main(int argc, char *argv[])
 	switch(type)
 	{
 		case Command::RENDER:
+			render(options[0], options[1], view, objects);
 			break;
 		case Command::FIRSTHIT:
 			firsthit(options[0], options[1], options[2], options[3], view, objects);
