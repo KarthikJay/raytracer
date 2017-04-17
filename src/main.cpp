@@ -312,10 +312,9 @@ void firsthit(unsigned int width, unsigned int height,
 			}
 		}
 	}
-	t = std::round(t);
 	if(print)
 	{
-		std::cout << "T = " << t << std::endl;
+		std::cout << "T = " << std::setprecision(4) <<  t << std::endl;
 		std::cout << "Object Type: ";
 		objects[select]->print_type();
 		std::cout << std::endl;
@@ -353,14 +352,55 @@ void render(unsigned int width, unsigned int height, Camera &view,
 {
 	const int num_channels = 3;
 	const std::string filename = "output.png";
+	unsigned char *data = new unsigned char[width * height * num_channels];
 
 	for(unsigned int y = 0; y < height; y++)
 	{
 		for(unsigned int x = 0; x < width; x++)
 		{
+			double u = -0.5 + ((x + 0.5) / width);
+			double v = -0.5 + ((y + 0.5) / height);
+			double w = -1;
+			double t = std::numeric_limits<double>::max();
+			int select = 0;
+			bool print = false;
 			unsigned char red = 0, green = 0, blue = 0;
+
+			Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
+			Eigen::Vector3d look = view.right.cross(view.up.normalized());
+			Eigen::Vector3d dis = ((view.right * u) + (view.up.normalized() * v) + (w * look.normalized())).normalized();
+			Ray test(view.position, dis);
+
+			// Loop through objects checking collision
+			for(unsigned int i = 0; i < objects.size(); i++)
+			{
+				double temp = objects[i]->collision(test);
+				if(temp > 0)
+				{
+					if(temp < t)
+					{
+						print = true;
+						select = i;
+						t = temp;
+					}
+				}
+			}
+
+			if(print)
+			{
+				red = (unsigned char) std::round(objects[select]->color(0) * 255.f);
+				green = (unsigned char) std::round(objects[select]->color(1) * 255.f);
+				blue = (unsigned char) std::round(objects[select]->color(2) * 255.f);
+			}
+
+			data[(width * num_channels) * (height - 1 - y) + num_channels * x + 0] = red;
+			data[(width * num_channels) * (height - 1 - y) + num_channels * x + 1] = green;
+			data[(width * num_channels) * (height - 1 - y) + num_channels * x + 2] = blue;
 		}
 	}
+
+	//stbi_write_png(filename.c_str(), width, height, num_channels, data, height * num_channels);
+	delete[] data;
 }
 
 int main(int argc, char *argv[])

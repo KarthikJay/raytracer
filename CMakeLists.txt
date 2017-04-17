@@ -14,7 +14,7 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 # We don't really need to include header and resource files to build, but it's
 # nice to have them show up in IDEs.
-file(GLOB_RECURSE HEADERS "src/*.hpp")
+file(GLOB_RECURSE HEADERS "src/*.hpp" "src/*.h")
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 # Set the executable.
