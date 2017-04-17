@@ -6,6 +6,8 @@
 #include <string>
 #include <iostream>
 
+#include "ray.hpp"
+
 class Shape
 {
 public:
@@ -15,7 +17,8 @@ public:
 	Eigen::Vector3d color;
 
 	// TODO(kjayakum): Figure out neater implementation using stream manipulators.
-	// virtual void print_brief();
+	virtual void print_type() = 0;
+	virtual double collision(Ray &r) = 0;
 	friend std::ostream &operator<< (std::ostream &out, const Shape &s)
 	{
 		s.print(out);

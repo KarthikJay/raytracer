@@ -14,6 +14,8 @@ public:
 	Sphere();
 	Sphere(Eigen::Vector3d center, double radius,
 			Eigen::Vector3d color, double ambient, double diffuse);
+	double collision(Ray &r);
+	void print_type();
 private:
 	void print(std::ostream &out) const;
 };

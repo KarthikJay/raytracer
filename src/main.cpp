@@ -1,10 +1,13 @@
 #include <vector>
 #include <memory>
 #include <iostream>
+#include <iomanip>
 #include <algorithm>
+#include <limits>
 #include <fstream>
 #include <sstream>
 #include <string>
+
 #include <stdio.h>
 #include <eigen3/Eigen/Dense>
 
@@ -15,6 +18,7 @@
 #include "plane.hpp"
 #include "camera.hpp"
 
+// TODO(kjayakum): Refactor this file... it's bad...
 enum class Command : int 
 {
 	INVALID = 0,
@@ -280,7 +284,8 @@ void firsthit(unsigned int width, unsigned int height,
 	double u = -0.5 + ((x + 0.5) / width);
 	double v = -0.5 + ((y + 0.5) / height);
 	double w = -1;
-	double t = 0.0;
+	double t = std::numeric_limits<double>::max();
+	int select = 0;
 	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
 	Eigen::Vector3d look = view.right.cross(view.up.normalized());
 	Eigen::Vector3d dis = ((view.right * u) + (view.up.normalized() * v) + (w * look.normalized())).normalized();
@@ -293,7 +298,27 @@ void firsthit(unsigned int width, unsigned int height,
 	// Loop through objects checking collision
 	for(unsigned int i = 0; i < objects.size(); i++)
 	{
-		
+		double temp = objects[i]->collision(test);
+		if(temp > 0)
+		{
+			if(temp < t)
+			{
+				select = i;
+				t = temp;
+			}
+		}
+	}
+	if(t != 0.0)
+	{
+		std::cout << "T: " << std::setprecision(2) << t << std::endl;
+		std::cout << "Object Type: ";
+		objects[select]->print_type();
+		std::cout << std::endl;
+		std::cout << "Color: " << objects[select]->color.format(SpaceFormat) << std::endl;
+	}
+	else
+	{
+		std::cout << "No Hit" << std::endl;
 	}
 }
 
@@ -334,6 +359,7 @@ int main(int argc, char *argv[])
 		case Command::RENDER:
 			break;
 		case Command::FIRSTHIT:
+			firsthit(options[0], options[1], options[2], options[3], view, objects);
 			break;
 		case Command::PIXELRAY:
 			pixelray(options[0], options[1], options[2], options[3], view);

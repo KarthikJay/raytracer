@@ -1,3 +1,6 @@
+#include <math.h>
+#include <algorithm>
+
 #include "sphere.hpp"
 
 Sphere::Sphere()
@@ -32,4 +35,28 @@ void Sphere::print(std::ostream &out) const
 	out << "- Material:" << std::endl;
 	out << "  - Ambient: " << this->ambient << std::endl;
 	out << "  - Diffuse: " << this->diffuse << std::endl;
+}
+
+double Sphere::collision(Ray &r)
+{
+	double t1, t2;
+	double T = 0.0;
+	double A = r.direction.dot(r.direction);
+	double B = (2 * r.direction).dot(r.origin - this->center);
+	double C = (r.origin - this->center).dot(r.origin - this->center) - (this->radius * this->radius);
+
+	// Positive
+	t1 = (-B + std::sqrt(std::pow(B, 2) - (4 * A * C))) / (2 * A);
+	// Negative
+	t2 = (-B - std::sqrt(std::pow(B, 2) - (4 * A * C))) / (2 * A);
+
+	T = std::min(t1, t2);
+	// Remove negative time
+	T = std::max(0.0, T);
+	return T;
+}
+
+void Sphere::print_type()
+{
+	std::cout << "Sphere";
 }

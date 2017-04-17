@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "plane.hpp"
 
 Plane::Plane()
@@ -32,4 +34,17 @@ void Plane::print(std::ostream &out) const
 	out << "- Material:" << std::endl;
 	out << "  - Ambient: " << this->ambient << std::endl;
 	out << "  - Diffuse: " << this->diffuse << std::endl;
+}
+
+void Plane::print_type()
+{
+	std::cout << "Plane";
+}
+
+double Plane::collision(Ray &r)
+{
+	double T = (this->distance - (r.origin.dot(this->normal.normalized())))
+				/ r.direction.dot(this->normal.normalized());
+	T = T < 0.0 ? 0.0 : T;
+	return T;
 }
