@@ -6,7 +6,7 @@ Ray::Ray()
 	direction = Eigen::Vector3d(0.0, 0.0, 0.0);
 }
 
-Ray::Ray(Eigen::Vector3d origin, Eigen::Vector3d direction)
+Ray::Ray(Eigen::Vector3d &origin, Eigen::Vector3d &direction)
 {
 	this->origin = origin;
 	this->direction = direction;

@@ -273,12 +273,36 @@ void print_scene(Camera &view, std::vector<std::shared_ptr<Shape>> &objects,
 	}
 }
 
+void firsthit(unsigned int width, unsigned int height,
+				unsigned int x, unsigned int y,
+				Camera &view, std::vector<std::shared_ptr<Shape>> &objects)
+{
+	double u = -0.5 + ((x + 0.5) / width);
+	double v = -0.5 + ((y + 0.5) / height);
+	double w = -1;
+	double t = 0.0;
+	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
+	Eigen::Vector3d look = view.right.cross(view.up.normalized());
+	Eigen::Vector3d dis = ((view.right * u) + (view.up.normalized() * v) + (w * look.normalized())).normalized();
+	Ray test(view.position, dis);
+
+	std::cout << "Pixel: [" << x << ", " << y << "] ";
+	std::cout << "Ray: {" << test.origin.format(SpaceFormat) << "} -> {";
+	std::cout << test.direction.format(SpaceFormat) << "}" << std::endl;
+
+	// Loop through objects checking collision
+	for(unsigned int i = 0; i < objects.size(); i++)
+	{
+		
+	}
+}
+
 void pixelray(unsigned int width, unsigned int height,
 				unsigned int x, unsigned int y, Camera &view)
 {
 	Ray temp;
 	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
-	Eigen::Vector3d look = -view.right.cross(view.up.normalized());
+	Eigen::Vector3d look = view.right.cross(view.up.normalized());
 	Eigen::Vector3d dist;
 
 	temp.origin = view.position;

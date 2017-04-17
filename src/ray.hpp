@@ -4,6 +4,8 @@
 #include <eigen3/Eigen/Dense>
 #include <iostream>
 
+#include "camera.hpp"
+
 class Ray
 {
 public:
@@ -11,7 +13,7 @@ public:
 	Eigen::Vector3d direction;
 
 	Ray();
-	Ray(Eigen::Vector3d origin, Eigen::Vector3d direction);
+	Ray(Eigen::Vector3d &origin, Eigen::Vector3d &direction);
 	friend std::ostream &operator<< (std::ostream &out, const Ray &r);
 private:
 
