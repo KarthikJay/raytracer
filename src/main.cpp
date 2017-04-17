@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <fstream>
 #include <sstream>
@@ -17,6 +18,7 @@
 #include "sphere.hpp"
 #include "plane.hpp"
 #include "camera.hpp"
+#include "stb_image_write.h"
 
 // TODO(kjayakum): Refactor this file... it's bad...
 enum class Command : int 
@@ -286,6 +288,7 @@ void firsthit(unsigned int width, unsigned int height,
 	double w = -1;
 	double t = std::numeric_limits<double>::max();
 	int select = 0;
+	bool print = false;
 	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
 	Eigen::Vector3d look = view.right.cross(view.up.normalized());
 	Eigen::Vector3d dis = ((view.right * u) + (view.up.normalized() * v) + (w * look.normalized())).normalized();
@@ -303,14 +306,16 @@ void firsthit(unsigned int width, unsigned int height,
 		{
 			if(temp < t)
 			{
+				print = true;
 				select = i;
 				t = temp;
 			}
 		}
 	}
-	if(t != 0.0)
+	t = std::round(t);
+	if(print)
 	{
-		std::cout << "T: " << std::setprecision(2) << t << std::endl;
+		std::cout << "T = " << t << std::endl;
 		std::cout << "Object Type: ";
 		objects[select]->print_type();
 		std::cout << std::endl;
@@ -341,6 +346,21 @@ void pixelray(unsigned int width, unsigned int height,
 	dist = (view.right * u) + (view.up.normalized() * v) + (w * look.normalized());
 	temp.direction = dist.normalized();
 	std::cout << temp.direction.format(SpaceFormat) << "}" << std::endl;
+}
+
+void render(unsigned int width, unsigned int height, Camera &view,
+			std::vector<std::shared_ptr<Shape>> &objects)
+{
+	const int num_channels = 3;
+	const std::string filename = "output.png";
+
+	for(unsigned int y = 0; y < height; y++)
+	{
+		for(unsigned int x = 0; x < width; x++)
+		{
+			unsigned char red = 0, green = 0, blue = 0;
+		}
+	}
 }
 
 int main(int argc, char *argv[])
