@@ -16,3 +16,8 @@ std::ostream &operator<< (std::ostream &out, const Ray &r)
 {
 	return out;
 }
+
+Eigen::Vector3d Ray::get_point(double time)
+{
+	return origin + (time * direction);
+}

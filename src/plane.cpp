@@ -10,6 +10,8 @@ Plane::Plane()
 	color = Eigen::Vector3d(0.0, 0.0, 0.0);
 	ambient = 0.0;
 	diffuse = 0.0;
+	specular = 0.0;
+	roughness = 0.5;
 }
 
 Plane::Plane(Eigen::Vector3d normal, double distance,
@@ -47,4 +49,9 @@ double Plane::collision(Ray &r)
 				/ r.direction.dot(this->normal.normalized());
 	T = T < 0.0 ? 0.0 : T;
 	return T;
+}
+
+Eigen::Vector3d Plane::get_normal(Eigen::Vector3d point)
+{
+	return normal;
 }

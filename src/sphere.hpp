@@ -16,6 +16,7 @@ public:
 			Eigen::Vector3d color, double ambient, double diffuse);
 	double collision(Ray &r);
 	void print_type();
+	Eigen::Vector3d get_normal(Eigen::Vector3d point);
 private:
 	void print(std::ostream &out) const;
 };

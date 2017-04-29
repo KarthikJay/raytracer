@@ -11,6 +11,8 @@ Sphere::Sphere()
 	color = Eigen::Vector3d(0.0, 0.0, 0.0); 
 	ambient = 0.0;
 	diffuse = 0.0;
+	specular = 0.0;
+	roughness = 0.5;
 }
 
 Sphere::Sphere(Eigen::Vector3d center, double radius,
@@ -59,4 +61,9 @@ double Sphere::collision(Ray &r)
 void Sphere::print_type()
 {
 	std::cout << "Sphere";
+}
+
+Eigen::Vector3d Sphere::get_normal(Eigen::Vector3d point)
+{
+	return point - center;
 }

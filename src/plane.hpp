@@ -15,6 +15,7 @@ public:
 	Plane(Eigen::Vector3d normal, double distance,
 			Eigen::Vector3d color, double ambient, double diffuse);
 	double collision(Ray &r);
+	Eigen::Vector3d get_normal(Eigen::Vector3d point);
 	void print_type();
 private:
 	void print(std::ostream &out) const;
