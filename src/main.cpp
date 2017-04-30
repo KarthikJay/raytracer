@@ -395,11 +395,9 @@ void pixelcolor(unsigned int width, unsigned int height,
 				kd(2) *= lights[i]->color(2);
 				double stuff = n_vec.dot(l_vec);
 				brdf_color += kd * stuff;
-				Eigen::Vector3d ks = objects[select]->specular * objects[select]->color;
-				ks(0) *= lights[i]->color(0);
-				ks(1) *= lights[i]->color(1);
-				ks(2) *= lights[i]->color(2);
-				double stuff2 = std::pow(h_vec.dot(n_vec), objects[select]->roughness);
+				Eigen::Vector3d ks = objects[select]->specular * lights[i]->color;
+				double val = (2 / (std::pow(objects[select]->roughness, 2)) - 2);
+				double stuff2 = clamp(std::pow(n_vec.dot(h_vec), val), 0.0, 1.0);
 				brdf_color += ks * stuff2;
 			}
 		}
@@ -485,7 +483,6 @@ void render(unsigned int width, unsigned int height, Camera &view,
 						kd(2) *= lights[i]->color(2);
 						double stuff = clamp(n_vec.dot(l_vec), 0.0, 1.0);
 						brdf_color += kd * stuff;
-						// Specular object parsing not working. Clamp value.
 						Eigen::Vector3d ks = objects[select]->specular * lights[i]->color;
 						double val = (2 / (std::pow(objects[select]->roughness, 2)) - 2);
 						double stuff2 = clamp(std::pow(n_vec.dot(h_vec), val), 0.0, 1.0);
