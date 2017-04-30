@@ -399,6 +399,9 @@ void pixelcolor(unsigned int width, unsigned int height,
 				double val = (2 / (std::pow(objects[select]->roughness, 2)) - 2);
 				double stuff2 = clamp(std::pow(n_vec.dot(h_vec), val), 0.0, 1.0);
 				brdf_color += ks * stuff2;
+				brdf_color(0) = clamp(brdf_color(0), 0.0, 1.0);
+				brdf_color(1) = clamp(brdf_color(1), 0.0, 1.0);
+				brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
 			}
 		}
 		brdf_color *= 255;
@@ -487,13 +490,15 @@ void render(unsigned int width, unsigned int height, Camera &view,
 						double val = (2 / (std::pow(objects[select]->roughness, 2)) - 2);
 						double stuff2 = clamp(std::pow(n_vec.dot(h_vec), val), 0.0, 1.0);
 						brdf_color += ks * stuff2;
+						brdf_color(0) = clamp(brdf_color(0), 0.0, 1.0);
+						brdf_color(1) = clamp(brdf_color(1), 0.0, 1.0);
+						brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
 					}
 				}
 				red = (unsigned char) std::round(brdf_color(0) * 255.f);
 				green = (unsigned char) std::round(brdf_color(1) * 255.f);
 				blue = (unsigned char) std::round(brdf_color(2) * 255.f);
 			}
-
 			data[(width * num_channels) * (height - 1 - y) + num_channels * x + 0] = red;
 			data[(width * num_channels) * (height - 1 - y) + num_channels * x + 1] = green;
 			data[(width * num_channels) * (height - 1 - y) + num_channels * x + 2] = blue;
