@@ -262,7 +262,7 @@ void firsthit(unsigned int width, unsigned int height,
 	}
 	if(print)
 	{
-		std::cout << "T = " << std::setprecision(4) <<  t << std::endl;
+		std::cout << "T = " << std::setprecision(4) << t << std::endl;
 		std::cout << "Object Type: ";
 		objects[select]->print_type();
 		std::cout << std::endl;
@@ -379,7 +379,8 @@ void pixelcolor(unsigned int width, unsigned int height,
 			v_vec.normalize();
 			Eigen::Vector3d l_vec = lights[i]->position - test.get_point(t);
 			l_vec.normalize();
-			Eigen::Vector3d offset = test.get_point(t) + Eigen::Vector3d(0.001, 0.001, 0.001);
+			// TODO(kjayakum): Need to get the sign for the offset (+/-)
+			Eigen::Vector3d offset = test.get_point(t - 0.001);
 			Ray shadow(offset, l_vec);
 			Eigen::Vector3d n_vec = objects[select]->get_normal(test.get_point(t));
 			n_vec.normalize();
@@ -471,7 +472,7 @@ void render(unsigned int width, unsigned int height, Camera &view,
 					v_vec.normalize();
 					Eigen::Vector3d l_vec = lights[i]->position - test.get_point(t);
 					l_vec.normalize();
-					Eigen::Vector3d offset = test.get_point(t) + Eigen::Vector3d(0.001, 0.001, 0.001);
+					Eigen::Vector3d offset = test.get_point(t - 0.001);
 					Ray shadow(offset, l_vec);
 					Eigen::Vector3d n_vec = objects[select]->get_normal(test.get_point(t));
 					n_vec.normalize();
