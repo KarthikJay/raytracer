@@ -141,13 +141,18 @@ void parse_scene(char *filename, Camera &view, std::vector<std::shared_ptr<Light
 				else if(temp == "finish")
 				{
 					//TODO(kjayakum): Figure out better way to parse finishes
-					for(int i = 0; i < 2; i++)
+					for(int i = 0; i < 4; i++)
 					{
 						ss2 >> temp;
 						if(temp == "ambient")
 							ss2 >> cur.ambient;
 						else if(temp == "diffuse")
 							ss2 >> cur.diffuse;
+						else if(temp == "specular")
+							ss2 >> cur.specular;
+						else if(temp == "roughness")
+							ss2 >> cur.roughness;
+						// Works because ss2 is thrown away.
 					}
 				}
 			}
@@ -451,7 +456,6 @@ void render(unsigned int width, unsigned int height, Camera &view,
 					}
 				}
 			}
-
 			if(print)
 			{
 				/*
@@ -481,12 +485,10 @@ void render(unsigned int width, unsigned int height, Camera &view,
 						kd(2) *= lights[i]->color(2);
 						double stuff = clamp(n_vec.dot(l_vec), 0.0, 1.0);
 						brdf_color += kd * stuff;
-						Eigen::Vector3d ks = objects[select]->specular * objects[select]->color;
-						ks(0) *= lights[i]->color(0);
-						ks(1) *= lights[i]->color(1);
-						ks(2) *= lights[i]->color(2);
-						double val = (2 / (std::pow(objects[select]->roughness, 2) - 2));
-						double stuff2 = clamp(std::pow(h_vec.dot(n_vec), val), 0.0, 1.0);
+						// Specular object parsing not working. Clamp value.
+						Eigen::Vector3d ks = objects[select]->specular * lights[i]->color;
+						double val = (2 / (std::pow(objects[select]->roughness, 2)) - 2);
+						double stuff2 = clamp(std::pow(n_vec.dot(h_vec), val), 0.0, 1.0);
 						brdf_color += ks * stuff2;
 					}
 				}
