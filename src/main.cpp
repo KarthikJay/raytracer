@@ -379,7 +379,6 @@ void pixelcolor(unsigned int width, unsigned int height,
 			v_vec.normalize();
 			Eigen::Vector3d l_vec = lights[i]->position - test.get_point(t);
 			l_vec.normalize();
-			// TODO(kjayakum): Need to get the sign for the offset (+/-)
 			Eigen::Vector3d offset = test.get_point(t - 0.001);
 			Ray shadow(offset, l_vec);
 			Eigen::Vector3d n_vec = objects[select]->get_normal(test.get_point(t));
