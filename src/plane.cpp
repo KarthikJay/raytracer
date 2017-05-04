@@ -15,7 +15,8 @@ Plane::Plane()
 }
 
 Plane::Plane(Eigen::Vector3d normal, double distance,
-				Eigen::Vector3d color, double ambient, double diffuse)
+				Eigen::Vector3d color, double ambient, double diffuse,
+				double specular, double roughness)
 {
 	this->normal = normal;
 	this->distance = distance;
@@ -23,6 +24,8 @@ Plane::Plane(Eigen::Vector3d normal, double distance,
 	this->color = color;
 	this->ambient = ambient;
 	this->diffuse = diffuse;
+	this->specular = specular;
+	this->roughness = roughness;
 }
 
 void Plane::print(std::ostream &out) const
@@ -36,11 +39,13 @@ void Plane::print(std::ostream &out) const
 	out << "- Material:" << std::endl;
 	out << "  - Ambient: " << this->ambient << std::endl;
 	out << "  - Diffuse: " << this->diffuse << std::endl;
+	out << "  - Specular: " << this->specular << std::endl;
+	out << "  - Roughness: " << this->roughness << std::endl;
 }
 
-void Plane::print_type()
+void Plane::print_type(std::ostream &out) const
 {
-	std::cout << "Plane";
+	out << "Plane";
 }
 
 double Plane::collision(Ray &r)

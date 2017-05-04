@@ -3,7 +3,6 @@
 
 #include <eigen3/Eigen/Dense>
 #include <vector>
-#include <string>
 #include <iostream>
 
 #include "ray.hpp"
@@ -18,7 +17,7 @@ public:
 	double roughness;
 	Eigen::Vector3d color;
 
-	virtual void print_type() = 0;
+	virtual void print_type(std::ostream &out) const = 0;
 	virtual double collision(Ray &r) = 0;
 	virtual Eigen::Vector3d get_normal(Eigen::Vector3d point) = 0;
 	friend std::ostream &operator<< (std::ostream &out, const Shape &s)

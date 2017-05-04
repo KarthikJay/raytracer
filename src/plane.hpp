@@ -13,10 +13,11 @@ public:
 
 	Plane();
 	Plane(Eigen::Vector3d normal, double distance,
-			Eigen::Vector3d color, double ambient, double diffuse);
+			Eigen::Vector3d color, double ambient, double diffuse,
+			double specular, double roughness);
 	double collision(Ray &r);
 	Eigen::Vector3d get_normal(Eigen::Vector3d point);
-	void print_type();
+	void print_type(std::ostream &out) const;
 private:
 	void print(std::ostream &out) const;
 };

@@ -16,7 +16,8 @@ Sphere::Sphere()
 }
 
 Sphere::Sphere(Eigen::Vector3d center, double radius,
-			Eigen::Vector3d color, double ambient, double diffuse)
+			Eigen::Vector3d color, double ambient, double diffuse,
+			double specular, double roughness)
 {
 	this->center = center;
 	this->radius = radius;
@@ -24,6 +25,8 @@ Sphere::Sphere(Eigen::Vector3d center, double radius,
 	this->color = color;
 	this->ambient = ambient;
 	this->diffuse = diffuse;
+	this->specular = specular;
+	this->roughness = roughness;
 }
 
 void Sphere::print(std::ostream &out) const
@@ -37,6 +40,8 @@ void Sphere::print(std::ostream &out) const
 	out << "- Material:" << std::endl;
 	out << "  - Ambient: " << this->ambient << std::endl;
 	out << "  - Diffuse: " << this->diffuse << std::endl;
+	out << "  - Specular: " << this->specular << std::endl;
+	out << "  - Roughness: " << this->roughness << std::endl;
 }
 
 double Sphere::collision(Ray &r)
@@ -58,9 +63,9 @@ double Sphere::collision(Ray &r)
 	return T;
 }
 
-void Sphere::print_type()
+void Sphere::print_type(std::ostream &out) const
 {
-	std::cout << "Sphere";
+	out << "Sphere";
 }
 
 Eigen::Vector3d Sphere::get_normal(Eigen::Vector3d point)

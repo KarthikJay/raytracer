@@ -13,9 +13,10 @@ public:
 
 	Sphere();
 	Sphere(Eigen::Vector3d center, double radius,
-			Eigen::Vector3d color, double ambient, double diffuse);
+			Eigen::Vector3d color, double ambient, double diffuse,
+			double specular, double roughness);
 	double collision(Ray &r);
-	void print_type();
+	void print_type(std::ostream &out) const;
 	Eigen::Vector3d get_normal(Eigen::Vector3d point);
 private:
 	void print(std::ostream &out) const;

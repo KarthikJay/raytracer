@@ -17,6 +17,7 @@
 #include "plane.hpp"
 #include "camera.hpp"
 #include "utility.hpp"
+#include "scene.hpp"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
@@ -25,206 +26,6 @@ template <typename T>
 T clamp(const T n, const T lower, const T upper)
 {
 	return std::max(lower, std::min(n, upper));
-}
-
-// TODO(kjayakum): Parse function assumes Shapes have data on the same line they are declared
-// TODO(kjayakum): Figure out more concise way of writing this function and it's arguments
-void parse_scene(char *filename, Camera &view, std::vector<std::shared_ptr<Light>> &lights,
-				 std::vector<std::shared_ptr<Shape>> &objects)
-{
-	std::ifstream infile;
-	std::string line;
-	std::size_t pos;
-	std::string temp;
-
-	infile.open(filename);
-	while(getline(infile, line))
-	{
-		pos = line.find("//");
-		if(pos != std::string::npos)
-			line.resize(pos);
-		std::replace(line.begin(), line.end(), '{', ' ');
-		std::replace(line.begin(), line.end(), '}', ' ');
-		std::replace(line.begin(), line.end(), '<', ' ');
-		std::replace(line.begin(), line.end(), '>', ' ');
-		std::replace(line.begin(), line.end(), ',', ' ');
-		// TODO(kjayakum): Assumes light_source data as one line.
-		if(line.find("light_source") != std::string::npos)
-		{
-			std::stringstream ss(line);
-			lights.push_back(std::make_shared<Light>());
-
-			ss >> temp;
-			ss >> lights.back()->position(0);
-			ss >> lights.back()->position(1);
-			ss >> lights.back()->position(2);
-			ss >> temp;
-			// TODO(kjayakum): Hardcoded RGB
-			ss >> temp;
-			ss >> lights.back()->color(0);
-			ss >> lights.back()->color(1);
-			ss >> lights.back()->color(2);
-
-			// std::cout << *(lights.back());
-		}
-		else if(line.find("camera") != std::string::npos)
-		{
-			// TODO(kjayakum): Will not fully clean up or check lines following camera
-			while(line != "}")
-			{
-				getline(infile, line);
-				std::replace(line.begin(), line.end(), '<', ' ');
-				std::replace(line.begin(), line.end(), '>', ' ');
-				std::replace(line.begin(), line.end(), ',', ' ');
-				// TODO(kjayakum): Don't declare temporary objects in loop
-				std::stringstream ss(line);
-				ss >> temp;
-				if(temp == "location")
-				{
-					ss >> view.position(0);
-					ss >> view.position(1);
-					ss >> view.position(2);
-				}
-				
-				else if(temp == "up")
-				{
-					ss >> view.up(0);
-					ss >> view.up(1);
-					ss >> view.up(2);
-				}
-				else if(temp == "right")
-				{
-					ss >> view.right(0);
-					ss >> view.right(1);
-					ss >> view.right(2);
-				}
-				else if(temp == "look_at")
-				{
-					ss >> view.look_at(0);
-					ss >> view.look_at(1);
-					ss >> view.look_at(2);
-				}
-			}
-		}
-		else if(line.find("sphere") != std::string::npos)
-		{
-			std::stringstream ss(line);
-			objects.push_back(std::make_shared<Sphere>());
-			Sphere &cur = *(std::static_pointer_cast<Sphere>(objects.back()));
-
-			ss >> temp;
-			ss >> cur.center(0);
-			ss >> cur.center(1);
-			ss >> cur.center(2);
-			ss >> cur.radius;
-
-			// TODO(kjayakum): Will not fully clean up or check lines following camera
-			// TODO(kjayakum): Look into stringstream ignore
-			while(line != "}")
-			{
-				getline(infile, line);
-				std::replace(line.begin(), line.end(), '{', ' ');
-				std::replace(line.begin(), line.end(), '<', ' ');
-				std::replace(line.begin(), line.end(), '>', ' ');
-				std::replace(line.begin(), line.end(), ',', ' ');
-				// TODO(kjayakum): Don't declare temporary objects in loop
-				std::stringstream ss2(line);
-				ss2 >> temp;
-				if(temp == "pigment")
-				{
-					ss2 >> temp;
-					ss2 >> temp;
-					ss2 >> cur.color(0);
-					ss2 >> cur.color(1);
-					ss2 >> cur.color(2);
-				}
-				else if(temp == "finish")
-				{
-					//TODO(kjayakum): Figure out better way to parse finishes
-					for(int i = 0; i < 4; i++)
-					{
-						ss2 >> temp;
-						if(temp == "ambient")
-							ss2 >> cur.ambient;
-						else if(temp == "diffuse")
-							ss2 >> cur.diffuse;
-						else if(temp == "specular")
-							ss2 >> cur.specular;
-						else if(temp == "roughness")
-							ss2 >> cur.roughness;
-						// Works because ss2 is thrown away.
-					}
-				}
-			}
-		}
-		else if(line.find("plane") != std::string::npos)
-		{
-			std::stringstream ss(line);
-			objects.push_back(std::make_shared<Plane>());
-			Plane &cur = *(std::static_pointer_cast<Plane>(objects.back()));
-
-			ss >> temp;
-			ss >> cur.normal(0);
-			ss >> cur.normal(1);
-			ss >> cur.normal(2);
-			ss >> cur.distance;
-
-			// TODO(kjayakum): Will not fully clean up or check lines following camera
-			// TODO(kjayakum): Look into stringstream ignore
-			while(line != "}")
-			{
-				getline(infile, line);
-				std::replace(line.begin(), line.end(), '{', ' ');
-				std::replace(line.begin(), line.end(), '<', ' ');
-				std::replace(line.begin(), line.end(), '>', ' ');
-				std::replace(line.begin(), line.end(), ',', ' ');
-				// TODO(kjayakum): Don't declare temporary objects in loop
-				std::stringstream ss2(line);
-				ss2 >> temp;
-				if(temp == "pigment")
-				{
-					ss2 >> temp;
-					ss2 >> temp;
-					ss2 >> cur.color(0);
-					ss2 >> cur.color(1);
-					ss2 >> cur.color(2);
-				}
-				else if(temp == "finish")
-				{
-					//TODO(kjayakum): Figure out better way to parse finishes
-					for(int i = 0; i < 2; i++)
-					{
-						ss2 >> temp;
-						if(temp == "ambient")
-							ss2 >> cur.ambient;
-						else if(temp == "diffuse")
-							ss2 >> cur.diffuse;
-					}
-				}
-			}
-		}
-	}
-	infile.close();
-}
-
-void print_scene(Camera &view, std::vector<std::shared_ptr<Shape>> &objects,
-					std::vector<std::shared_ptr<Light>> &lights)
-{
-	std::cout << "Camera:" << std::endl << view;
-	std::cout << std::endl << "---" << std::endl << std::endl;
-	std::cout << lights.size() << " light(s)" << std::endl;
-	for(unsigned int i = 0; i < lights.size(); i++)
-	{
-		std::cout << std::endl << "Light[" << i << "]:" << std::endl;
-		std::cout << *lights[i];
-	}
-	std::cout << std::endl << "---" << std::endl << std::endl;
-	std::cout << objects.size() << " object(s)" << std::endl;
-	for(unsigned int i = 0; i < objects.size(); i++)
-	{
-		std::cout << std::endl << "Object[" << i << "]:" << std::endl;
-		std::cout << *objects[i];
-	}
 }
 
 void firsthit(unsigned int width, unsigned int height,
@@ -264,7 +65,7 @@ void firsthit(unsigned int width, unsigned int height,
 	{
 		std::cout << "T = " << std::setprecision(4) << t << std::endl;
 		std::cout << "Object Type: ";
-		objects[select]->print_type();
+		objects[select]->print_type(std::cout);
 		std::cout << std::endl;
 		std::cout << "Color: " << objects[select]->color.format(SpaceFormat) << std::endl;
 	}
@@ -364,7 +165,7 @@ void pixelcolor(unsigned int width, unsigned int height,
 	{
 		std::cout << "T = " << std::setprecision(4) << t << std::endl;
 		std::cout << "Object Type: ";
-		objects[select]->print_type();
+		objects[select]->print_type(std::cout);
 		std::cout << std::endl;
 		std::cout << "BRDF: ";
 		if(!use_alt)
@@ -511,16 +312,18 @@ void render(unsigned int width, unsigned int height, Camera &view,
 
 int main(int argc, char *argv[])
 {
-	std::vector<std::shared_ptr<Shape>> objects;
-	std::vector<std::shared_ptr<Light>> lights;
-	std::vector<unsigned int> options;
+	Scene test;
 	Camera view;
+	std::ifstream input_file;
+	std::vector<unsigned int> options;
 	// bool alternative_brdf = false;
-
+	input_file.open(argv[2]);
+	input_file >> test;
+	input_file.close();
+	//test.print_visual(std::cout);
 	Command type = is_valid_command(argc, argv);
-	parse_scene(argv[2], view, lights, objects);
 	parse_optional(argc, argv, options);
-
+	/*
 	switch(type)
 	{
 		case Command::RENDER:
@@ -539,5 +342,6 @@ int main(int argc, char *argv[])
 			pixelcolor(options[0], options[1], options[2], options[3], view, objects, lights, false);
 			break;
 	}
+	*/
 	return 0;
 }
