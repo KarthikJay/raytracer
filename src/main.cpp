@@ -75,23 +75,22 @@ void firsthit(const Scene &scene, uint x, uint y)
 	}
 }
 
-void pixelray(unsigned int width, unsigned int height,
-				unsigned int x, unsigned int y, Camera &view)
+void pixelray(const Scene &scene, uint x, uint y)
 {
 	Ray temp;
 	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
-	Eigen::Vector3d look = view.right.cross(view.up.normalized());
+	Eigen::Vector3d look = scene.view.right.cross(scene.view.up.normalized());
 	Eigen::Vector3d dist;
 
-	temp.origin = view.position;
+	temp.origin = scene.view.position;
 	std::cout << "Pixel: [" << x << ", " << y << "] ";
 	std::cout << "Ray: {" << temp.origin.format(SpaceFormat) << "} -> {";
 
-	double u = -0.5 + ((x + 0.5) / width);
-	double v = -0.5 + ((y + 0.5) / height);
+	double u = -0.5 + ((x + 0.5) / scene.width);
+	double v = -0.5 + ((y + 0.5) / scene.height);
 	double w = -1;
 
-	dist = (view.right * u) + (view.up.normalized() * v) + (w * look.normalized());
+	dist = (scene.view.right * u) + (scene.view.up.normalized() * v) + (w * look.normalized());
 	temp.direction = dist.normalized();
 	std::cout << temp.direction.format(SpaceFormat) << "}" << std::endl;
 }
@@ -330,10 +329,10 @@ int main(int argc, char *argv[])
 			//render(options[0], options[1], view, objects, lights, false);
 			break;
 		case Command::FIRSTHIT:
-			//firsthit(options[0], options[1], options[2], options[3], view, objects);
+			firsthit(scene, options[2], options[3]);
 			break;
 		case Command::PIXELRAY:
-			//pixelray(options[0], options[1], options[2], options[3], view);
+			pixelray(scene, options[2], options[3]);
 			break;
 		case Command::SCENEINFO:
 			std::cout << scene << std::endl;
