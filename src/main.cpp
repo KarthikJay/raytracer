@@ -213,20 +213,18 @@ void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
 	}
 }
 
-void render(unsigned int width, unsigned int height, Camera &view,
-			std::vector<std::shared_ptr<Shape>> &objects,
-			std::vector<std::shared_ptr<Light>> &lights, bool use_alt)
+void render(const Scene &scene, bool use_alt = false)
 {
 	const int num_channels = 3;
 	const std::string filename = "output.png";
-	unsigned char *data = new unsigned char[width * height * num_channels];
+	unsigned char *data = new unsigned char[scene.width * scene.height * num_channels];
 
-	for(unsigned int y = 0; y < height; ++y)
+	for(unsigned int y = 0; y < scene.height; ++y)
 	{
-		for(unsigned int x = 0; x < width; ++x)
+		for(unsigned int x = 0; x < scene.width; ++x)
 		{
-			double u = -0.5 + ((x + 0.5) / width);
-			double v = -0.5 + ((y + 0.5) / height);
+			double u = -0.5 + ((x + 0.5) / scene.width);
+			double v = -0.5 + ((y + 0.5) / scene.height);
 			double w = -1;
 			double t = std::numeric_limits<double>::max();
 			int select = 0;
@@ -234,15 +232,15 @@ void render(unsigned int width, unsigned int height, Camera &view,
 			unsigned char red = 0, green = 0, blue = 0;
 
 			Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
-			Eigen::Vector3d look = view.right.cross(view.up.normalized());
-			Eigen::Vector3d dis = ((view.right * u) + (view.up.normalized() * v) + (w * look.normalized())).normalized();
-			Ray test(view.position, dis);
+			Eigen::Vector3d look = scene.view.right.cross(scene.view.up.normalized());
+			Eigen::Vector3d dis = ((scene.view.right * u) + (scene.view.up.normalized() * v) + (w * look.normalized())).normalized();
+			Ray test(scene.view.position, dis);
 			Eigen::Vector3d brdf_color;
 
 			// Loop through objects checking collision
-			for(unsigned int i = 0; i < objects.size(); i++)
+			for(unsigned int i = 0; i < scene.shapes.size(); i++)
 			{
-				double temp = objects[i]->collision(test);
+				double temp = scene.shapes[i]->collision(test);
 				if(temp > 0)
 				{
 					if(temp < t)
@@ -255,35 +253,30 @@ void render(unsigned int width, unsigned int height, Camera &view,
 			}
 			if(print)
 			{
-				/*
-				red = (unsigned char) std::round(objects[select]->color(0) * 255.f);
-				green = (unsigned char) std::round(objects[select]->color(1) * 255.f);
-				blue = (unsigned char) std::round(objects[select]->color(2) * 255.f);
-				*/
-				brdf_color = objects[select]->ambient * objects[select]->color;
-				for(unsigned int i = 0; i < lights.size(); i++)
+				brdf_color = scene.shapes[select]->ambient * scene.shapes[select]->color;
+				for(unsigned int i = 0; i < scene.lights.size(); i++)
 				{
 					Eigen::Vector3d v_vec = -dis;
 					v_vec.normalize();
-					Eigen::Vector3d l_vec = lights[i]->position - test.get_point(t);
+					Eigen::Vector3d l_vec = scene.lights[i].position - test.get_point(t);
 					l_vec.normalize();
 					Eigen::Vector3d offset = test.get_point(t - 0.001);
 					Ray shadow(offset, l_vec);
-					Eigen::Vector3d n_vec = objects[select]->get_normal(test.get_point(t));
+					Eigen::Vector3d n_vec = scene.shapes[select]->get_normal(test.get_point(t));
 					n_vec.normalize();
 					Eigen::Vector3d h_vec = (v_vec + l_vec).normalized();
 
-					bool is_shadowed = cast_shadow_ray(shadow, objects, *lights[i]);
+					bool is_shadowed = cast_shadow_ray(shadow, scene.shapes, scene.lights[i]);
 					if(!is_shadowed)
 					{
-						Eigen::Vector3d kd = objects[select]->diffuse * objects[select]->color;
-						kd(0) *= lights[i]->color(0);
-						kd(1) *= lights[i]->color(1);
-						kd(2) *= lights[i]->color(2);
+						Eigen::Vector3d kd = scene.shapes[select]->diffuse * scene.shapes[select]->color;
+						kd(0) *= scene.lights[i].color(0);
+						kd(1) *= scene.lights[i].color(1);
+						kd(2) *= scene.lights[i].color(2);
 						double stuff = clamp(n_vec.dot(l_vec), 0.0, 1.0);
 						brdf_color += kd * stuff;
-						Eigen::Vector3d ks = objects[select]->specular * lights[i]->color;
-						double val = (2 / (std::pow(objects[select]->roughness, 2)) - 2);
+						Eigen::Vector3d ks = scene.shapes[select]->specular * scene.lights[i].color;
+						double val = (2 / (std::pow(scene.shapes[select]->roughness, 2)) - 2);
 						double stuff2 = clamp(std::pow(n_vec.dot(h_vec), val), 0.0, 1.0);
 						brdf_color += ks * stuff2;
 						brdf_color(0) = clamp(brdf_color(0), 0.0, 1.0);
@@ -295,13 +288,13 @@ void render(unsigned int width, unsigned int height, Camera &view,
 				green = (unsigned char) std::round(brdf_color(1) * 255.f);
 				blue = (unsigned char) std::round(brdf_color(2) * 255.f);
 			}
-			data[(width * num_channels) * (height - 1 - y) + num_channels * x + 0] = red;
-			data[(width * num_channels) * (height - 1 - y) + num_channels * x + 1] = green;
-			data[(width * num_channels) * (height - 1 - y) + num_channels * x + 2] = blue;
+			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 0] = red;
+			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 1] = green;
+			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 2] = blue;
 		}
 	}
 
-	stbi_write_png(filename.c_str(), width, height, num_channels, data, width * num_channels);
+	stbi_write_png(filename.c_str(), scene.width, scene.height, num_channels, data, scene.width * num_channels);
 	delete[] data;
 }
 
@@ -317,24 +310,30 @@ int main(int argc, char *argv[])
 	input_file.close();
 	Command type = is_valid_command(argc, argv);
 	parse_optional(argc, argv, options);
-	scene.set_scene_dimensions(options[0], options[1]);
 
 	switch(type)
 	{
 		case Command::RENDER:
-			//render(options[0], options[1], view, objects, lights, false);
+			scene.set_scene_dimensions(options[0], options[1]);
+			render(scene);
 			break;
 		case Command::FIRSTHIT:
+			scene.set_scene_dimensions(options[0], options[1]);
 			firsthit(scene, options[2], options[3]);
 			break;
 		case Command::PIXELRAY:
+			scene.set_scene_dimensions(options[0], options[1]);
 			pixelray(scene, options[2], options[3]);
 			break;
 		case Command::SCENEINFO:
-			std::cout << scene << std::endl;
+			std::cout << scene;
 			break;
 		case Command::PIXELCOLOR:
+			scene.set_scene_dimensions(options[0], options[1]);
 			pixelcolor(scene, options[2], options[3]);
+			break;
+		case Command::PIXELTRACE:
+			scene.set_scene_dimensions(options[0], options[1]);
 			break;
 	}
 	return 0;

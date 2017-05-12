@@ -9,7 +9,8 @@ enum class Command : int
 	SCENEINFO,
 	PIXELRAY,
 	FIRSTHIT,
-	PIXELCOLOR
+	PIXELCOLOR,
+	PIXELTRACE
 };
 
 // Utility functions

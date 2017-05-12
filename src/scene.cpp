@@ -48,7 +48,7 @@ void read_camera(std::istream &in, Scene &scene)
 		{
 			ss >> scene.view.position(0);
 			ss >> scene.view.position(1);
-			ss >> scene.view.position(1);
+			ss >> scene.view.position(2);
 		}
 		else if(temp == "up")
 		{
