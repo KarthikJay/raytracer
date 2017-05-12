@@ -44,13 +44,13 @@ void Sphere::print(std::ostream &out) const
 	out << "  - Roughness: " << this->roughness << std::endl;
 }
 
-double Sphere::collision(Ray &r)
+double Sphere::collision(const Ray &r) const
 {
 	double t1, t2;
 	double T = 0.0;
 	double A = r.direction.dot(r.direction);
-	double B = (2 * r.direction).dot(r.origin - this->center);
-	double C = (r.origin - this->center).dot(r.origin - this->center) - (this->radius * this->radius);
+	double B = (2 * r.direction).dot(r.position - this->center);
+	double C = (r.position - this->center).dot(r.position - this->center) - (this->radius * this->radius);
 
 	// Positive
 	t1 = (-B + std::sqrt(std::pow(B, 2) - (4 * A * C))) / (2 * A);

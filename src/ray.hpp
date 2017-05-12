@@ -9,12 +9,12 @@
 class Ray
 {
 public:
-	Eigen::Vector3d origin;
+	Eigen::Vector3d position;
 	Eigen::Vector3d direction;
 
 	Ray();
-	Ray(Eigen::Vector3d &origin, Eigen::Vector3d &direction);
-	Eigen::Vector3d get_point(double time);
+	Ray(Eigen::Vector3d &position, Eigen::Vector3d &direction);
+	Eigen::Vector3d get_point(double time) const;
 	friend std::ostream &operator<< (std::ostream &out, const Ray &r);
 private:
 

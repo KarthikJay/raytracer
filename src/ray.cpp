@@ -2,13 +2,13 @@
 
 Ray::Ray()
 {
-	origin = Eigen::Vector3d(0.0, 0.0, 0.0);
+	position = Eigen::Vector3d(0.0, 0.0, 0.0);
 	direction = Eigen::Vector3d(0.0, 0.0, 0.0);
 }
 
-Ray::Ray(Eigen::Vector3d &origin, Eigen::Vector3d &direction)
+Ray::Ray(Eigen::Vector3d &position, Eigen::Vector3d &direction)
 {
-	this->origin = origin;
+	this->position = position;
 	this->direction = direction;
 }
 
@@ -17,7 +17,7 @@ std::ostream &operator<< (std::ostream &out, const Ray &r)
 	return out;
 }
 
-Eigen::Vector3d Ray::get_point(double time)
+Eigen::Vector3d Ray::get_point(double time) const
 {
-	return origin + (time * direction);
+	return position + (time * direction);
 }

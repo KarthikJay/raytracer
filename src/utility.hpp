@@ -12,8 +12,6 @@ enum class Command : int
 	PIXELCOLOR
 };
 
-template <typename T>
-
 // Utility functions
 void parse_optional(int argc, char *argv[], std::vector<unsigned int> &optional);
 Command is_valid_command(int argc, char *argv[]);

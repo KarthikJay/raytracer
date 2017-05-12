@@ -6,7 +6,17 @@
 #include "sphere.hpp"
 #include "plane.hpp"
 
-Scene::Scene() {}
+void Scene::set_scene_dimensions(uint width, uint height)
+{
+	this->width = width;
+	this->height = height;
+	view.right(0) = (double) width / (double) height;
+}
+
+Scene::Scene(uint width, uint height)
+{
+	set_scene_dimensions(width, height);
+}
 
 void remove_comment(std::string &line)
 {
@@ -41,7 +51,7 @@ void read_camera(std::istream &in, Scene &scene)
 		{
 			ss >> scene.view.position(0);
 			ss >> scene.view.position(1);
-			ss >> scene.view.position(1);
+			ss >> scene.view.position(2);
 		}
 		else if(temp == "up")
 		{

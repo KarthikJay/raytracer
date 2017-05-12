@@ -48,9 +48,9 @@ void Plane::print_type(std::ostream &out) const
 	out << "Plane";
 }
 
-double Plane::collision(Ray &r)
+double Plane::collision(const Ray &r) const
 {
-	double T = (this->distance - (r.origin.dot(this->normal.normalized())))
+	double T = (this->distance - (r.position.dot(this->normal.normalized())))
 				/ r.direction.dot(this->normal.normalized());
 	T = T < 0.0 ? 0.0 : T;
 	return T;

@@ -18,6 +18,7 @@
 #include "camera.hpp"
 #include "utility.hpp"
 #include "scene.hpp"
+#include "shader.hpp"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
@@ -44,7 +45,7 @@ void firsthit(unsigned int width, unsigned int height,
 	Ray test(view.position, dis);
 
 	std::cout << "Pixel: [" << x << ", " << y << "] ";
-	std::cout << "Ray: {" << test.origin.format(SpaceFormat) << "} -> {";
+	std::cout << "Ray: {" << test.position.format(SpaceFormat) << "} -> {";
 	std::cout << test.direction.format(SpaceFormat) << "}" << std::endl;
 
 	// Loop through objects checking collision
@@ -83,9 +84,9 @@ void pixelray(unsigned int width, unsigned int height,
 	Eigen::Vector3d look = view.right.cross(view.up.normalized());
 	Eigen::Vector3d dist;
 
-	temp.origin = view.position;
+	temp.position = view.position;
 	std::cout << "Pixel: [" << x << ", " << y << "] ";
-	std::cout << "Ray: {" << temp.origin.format(SpaceFormat) << "} -> {";
+	std::cout << "Ray: {" << temp.position.format(SpaceFormat) << "} -> {";
 
 	double u = -0.5 + ((x + 0.5) / width);
 	double v = -0.5 + ((y + 0.5) / height);
@@ -111,8 +112,8 @@ bool cast_shadow_ray(Ray &test, std::vector<std::shared_ptr<Shape>> &objects,
 			{
 				t = temp;
 				Eigen::Vector3d hit_point = test.get_point(t);
-				double s = (hit_point - test.origin).norm();
-				double check = (cur_light.position - test.origin).norm();
+				double s = (hit_point - test.position).norm();
+				double check = (cur_light.position - test.position).norm();
 				if(s < check)
 				{
 					is_shadowed = true;
@@ -143,7 +144,7 @@ void pixelcolor(unsigned int width, unsigned int height,
 	Ray test(view.position, dis);
 
 	std::cout << "Pixel: [" << x << ", " << y << "] ";
-	std::cout << "Ray: {" << test.origin.format(SpaceFormat) << "} -> {";
+	std::cout << "Ray: {" << test.position.format(SpaceFormat) << "} -> {";
 	std::cout << test.direction.format(SpaceFormat) << "}" << std::endl;
 
 	// Loop through objects checking collision
@@ -312,36 +313,44 @@ void render(unsigned int width, unsigned int height, Camera &view,
 
 int main(int argc, char *argv[])
 {
-	Scene test;
 	Camera view;
 	std::ifstream input_file;
 	std::vector<unsigned int> options;
 	// bool alternative_brdf = false;
-	input_file.open(argv[2]);
-	input_file >> test;
-	input_file.close();
-	//test.print_visual(std::cout);
 	Command type = is_valid_command(argc, argv);
 	parse_optional(argc, argv, options);
-	/*
+	Scene scene(options[0], options[1]);
+	input_file.open(argv[2]);
+	input_file >> scene;
+	input_file.close();
+	Shader test(scene);
+	//scene.print_visual(std::cout);
+
 	switch(type)
 	{
 		case Command::RENDER:
-			render(options[0], options[1], view, objects, lights, false);
+			//render(options[0], options[1], view, objects, lights, false);
 			break;
 		case Command::FIRSTHIT:
-			firsthit(options[0], options[1], options[2], options[3], view, objects);
+			//firsthit(options[0], options[1], options[2], options[3], view, objects);
+			test.set_pixel(options[2], options[3]);
+			test.print_collision(std::cout);
 			break;
 		case Command::PIXELRAY:
-			pixelray(options[0], options[1], options[2], options[3], view);
+			//pixelray(options[0], options[1], options[2], options[3], view);
+			test.set_pixel(options[2], options[3]);
+			test.print_pixel_ray(std::cout);
 			break;
 		case Command::SCENEINFO:
-			print_scene(view, objects, lights);
+			//print_scene(view, objects, lights);
+			std::cout << scene;
 			break;
 		case Command::PIXELCOLOR:
-			pixelcolor(options[0], options[1], options[2], options[3], view, objects, lights, false);
+			//pixelcolor(options[0], options[1], options[2], options[3], view, objects, lights, false);
+			test.set_pixel(options[2], options[3]);
+			test.print_pixel_color(std::cout);
 			break;
 	}
-	*/
+
 	return 0;
 }
