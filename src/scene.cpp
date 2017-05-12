@@ -8,6 +8,13 @@
 
 Scene::Scene() {}
 
+void Scene::set_scene_dimensions(uint width, uint height)
+{
+	this->width = width;
+	this->height = height;
+	view.right(0) = (double) width / (double) height;
+}
+
 void remove_comment(std::string &line)
 {
 	std::size_t pos = line.find("//");

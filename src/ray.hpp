@@ -13,7 +13,7 @@ public:
 	Eigen::Vector3d direction;
 
 	Ray();
-	Ray(Eigen::Vector3d &origin, Eigen::Vector3d &direction);
+	Ray(const Eigen::Vector3d &origin, const Eigen::Vector3d &direction);
 	Eigen::Vector3d get_point(double time);
 	friend std::ostream &operator<< (std::ostream &out, const Ray &r);
 private:

@@ -28,29 +28,29 @@ T clamp(const T n, const T lower, const T upper)
 	return std::max(lower, std::min(n, upper));
 }
 
-void firsthit(unsigned int width, unsigned int height,
-				unsigned int x, unsigned int y,
-				Camera &view, std::vector<std::shared_ptr<Shape>> &objects)
+void firsthit(const Scene &scene, uint x, uint y)
 {
-	double u = -0.5 + ((x + 0.5) / width);
-	double v = -0.5 + ((y + 0.5) / height);
+	double u = -0.5 + ((x + 0.5) / scene.width);
+	double v = -0.5 + ((y + 0.5) / scene.height);
 	double w = -1;
 	double t = std::numeric_limits<double>::max();
 	int select = 0;
 	bool print = false;
 	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
-	Eigen::Vector3d look = view.right.cross(view.up.normalized());
-	Eigen::Vector3d dis = ((view.right * u) + (view.up.normalized() * v) + (w * look.normalized())).normalized();
-	Ray test(view.position, dis);
+	Eigen::Vector3d look = scene.view.right.cross(scene.view.up.normalized());
+	Eigen::Vector3d dis = ((scene.view.right * u)
+						+ (scene.view.up.normalized() * v)
+						+ (w * look.normalized())).normalized();
+	Ray test(scene.view.position, dis);
 
 	std::cout << "Pixel: [" << x << ", " << y << "] ";
 	std::cout << "Ray: {" << test.origin.format(SpaceFormat) << "} -> {";
 	std::cout << test.direction.format(SpaceFormat) << "}" << std::endl;
 
 	// Loop through objects checking collision
-	for(unsigned int i = 0; i < objects.size(); i++)
+	for(unsigned int i = 0; i < scene.shapes.size(); i++)
 	{
-		double temp = objects[i]->collision(test);
+		double temp = scene.shapes[i]->collision(test);
 		if(temp > 0)
 		{
 			if(temp < t)
@@ -65,9 +65,9 @@ void firsthit(unsigned int width, unsigned int height,
 	{
 		std::cout << "T = " << std::setprecision(4) << t << std::endl;
 		std::cout << "Object Type: ";
-		objects[select]->print_type(std::cout);
+		scene.shapes[select]->print_type(std::cout);
 		std::cout << std::endl;
-		std::cout << "Color: " << objects[select]->color.format(SpaceFormat) << std::endl;
+		std::cout << "Color: " << scene.shapes[select]->color.format(SpaceFormat) << std::endl;
 	}
 	else
 	{
@@ -312,36 +312,35 @@ void render(unsigned int width, unsigned int height, Camera &view,
 
 int main(int argc, char *argv[])
 {
-	Scene test;
+	Scene scene;
 	Camera view;
 	std::ifstream input_file;
 	std::vector<unsigned int> options;
-	// bool alternative_brdf = false;
+
 	input_file.open(argv[2]);
-	input_file >> test;
+	input_file >> scene;
 	input_file.close();
-	//test.print_visual(std::cout);
 	Command type = is_valid_command(argc, argv);
 	parse_optional(argc, argv, options);
-	/*
+	scene.set_scene_dimensions(options[0], options[1]);
+
 	switch(type)
 	{
 		case Command::RENDER:
-			render(options[0], options[1], view, objects, lights, false);
+			//render(options[0], options[1], view, objects, lights, false);
 			break;
 		case Command::FIRSTHIT:
-			firsthit(options[0], options[1], options[2], options[3], view, objects);
+			//firsthit(options[0], options[1], options[2], options[3], view, objects);
 			break;
 		case Command::PIXELRAY:
-			pixelray(options[0], options[1], options[2], options[3], view);
+			//pixelray(options[0], options[1], options[2], options[3], view);
 			break;
 		case Command::SCENEINFO:
-			print_scene(view, objects, lights);
+			std::cout << scene << std::endl;
 			break;
 		case Command::PIXELCOLOR:
-			pixelcolor(options[0], options[1], options[2], options[3], view, objects, lights, false);
+			//pixelcolor(options[0], options[1], options[2], options[3], view, objects, lights, false);
 			break;
 	}
-	*/
 	return 0;
 }
