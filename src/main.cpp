@@ -123,44 +123,71 @@ bool cast_shadow_ray(Ray &test, const std::vector<std::shared_ptr<Shape>> &objec
 	return is_shadowed;
 }
 
-Eigen::Vector3d cast_reflect_ray(const Scene &scene, Ray &ray, uint depth = 0)
+Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0)
 {
-	Eigen::Vector3d hit_color = Eigen::Vector3d(0, 0, 0);
+	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
+	bool collision = false;
 	int select = 0;
-	bool print = false;
 	double t = std::numeric_limits<double>::max();
-	if(depth != 6)
-	{
-		for(unsigned int i = 0; i < scene.shapes.size(); i++)
-		{
-			double temp = scene.shapes[i]->collision(ray);
-			if(temp > 0)
-			{
-				if(temp < t)
-				{
-					print = true;
-					select = i;
-					t = temp;
-				}
-			}
-		}
 
-		if(print)
+	for(uint i = 0; i < scene.shapes.size(); i++)
+	{
+		double temp = scene.shapes[i]->collision(ray);
+		if(temp > 0 && temp < t)
 		{
-			for(uint i = 0; i < scene.lights.size(); i++)
-			{
-				Eigen::Vector3d n_vec = scene.shapes[select]->get_normal(ray.get_point(t));
-				n_vec.normalize();
-				Eigen::Vector3d r_vec = ray.direction - (2 * (ray.direction.dot(n_vec)) * n_vec);
-				r_vec.normalize();
-				Ray reflection = Ray(ray.get_point(t - 0.001), r_vec);
-				// TODO(kjayakum): Refactor to get an intersected objects blinn_phong color
-				hit_color += scene.shapes[select]->color * scene.shapes[select]->ambient;
-				hit_color += cast_reflect_ray(scene, reflection, depth + 1);
-			}
+			collision = true;
+			select = i;
+			t = temp;
 		}
 	}
-	return hit_color;
+
+	if(collision)
+	{
+		color += scene.shapes[select]->ambient * scene.shapes[select]->color;
+		for(uint i = 0; i < scene.lights.size(); i++)
+		{
+			Eigen::Vector3d v_vec = -ray.direction;
+			v_vec.normalize();
+			Eigen::Vector3d l_vec = scene.lights[i].position - ray.get_point(t);
+			l_vec.normalize();
+			Eigen::Vector3d offset = ray.get_point(t - 0.001);
+			Ray shadow(offset, l_vec);
+			Eigen::Vector3d n_vec = scene.shapes[select]->get_normal(ray.get_point(t));
+			n_vec.normalize();
+			Eigen::Vector3d h_vec = (v_vec + l_vec).normalized();
+			bool shadowed = cast_shadow_ray(shadow, scene.shapes, scene.lights[i]);
+			if(!shadowed)
+			{
+				Eigen::Vector3d kd = scene.shapes[select]->diffuse * scene.shapes[select]->color;
+				kd(0) *= scene.lights[i].color(0);
+				kd(1) *= scene.lights[i].color(1);
+				kd(2) *= scene.lights[i].color(2);
+				double stuff = n_vec.dot(l_vec);
+				color += kd * stuff;
+				Eigen::Vector3d ks = scene.shapes[select]->specular * scene.lights[i].color;
+				double power = (2 / (std::pow(scene.shapes[select]->roughness, 2)) - 2);
+				double stuff2 = clamp(std::pow(n_vec.dot(h_vec), power), 0.0, 1.0);
+				color += ks * stuff2;
+				color(0) = clamp(color(0), 0.0, 1.0);
+				color(1) = clamp(color(1), 0.0, 1.0);
+				color(2) = clamp(color(2), 0.0, 1.0);
+			}
+		}
+		if(scene.shapes[select]->reflection > 0)
+		{
+			Eigen::Vector3d n_vec = scene.shapes[select]->get_normal(ray.get_point(t));
+			n_vec.normalize();
+			Eigen::Vector3d r_vec = ray.direction - (2 * (ray.direction.dot(n_vec)) * n_vec);
+			r_vec.normalize();
+			Ray reflection = Ray(ray.get_point(t - 0.001), r_vec);
+			color += scene.shapes[select]->reflection * blinn_phong(scene, reflection, depth + 1);
+			color(0) = clamp(color(0), 0.0, 1.0);
+			color(1) = clamp(color(1), 0.0, 1.0);
+			color(2) = clamp(color(2), 0.0, 1.0);
+		}
+	}
+
+	return color;
 }
 
 void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
@@ -241,10 +268,6 @@ void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
 				brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
 			}
 		}
-		brdf_color += scene.shapes[select]->reflection * cast_reflect_ray(scene, test);
-		brdf_color(0) = clamp(brdf_color(0), 0.0, 1.0);
-		brdf_color(1) = clamp(brdf_color(1), 0.0, 1.0);
-		brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
 		brdf_color *= 255;
 		brdf_color(0) = std::round(brdf_color(0));
 		brdf_color(1) = std::round(brdf_color(1));
@@ -270,72 +293,18 @@ void render(const Scene &scene, bool use_alt = false)
 			double u = -0.5 + ((x + 0.5) / scene.width);
 			double v = -0.5 + ((y + 0.5) / scene.height);
 			double w = -1;
-			double t = std::numeric_limits<double>::max();
-			int select = 0;
-			bool print = false;
 			unsigned char red = 0, green = 0, blue = 0;
 
-			Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
 			Eigen::Vector3d look = scene.view.right.cross(scene.view.up.normalized());
 			Eigen::Vector3d dis = ((scene.view.right * u) + (scene.view.up.normalized() * v) + (w * look.normalized())).normalized();
-			Ray test(scene.view.position, dis);
-			Eigen::Vector3d brdf_color;
+			Ray pixel_ray(scene.view.position, dis);
+			Eigen::Vector3d color;
 
-			// Loop through objects checking collision
-			for(unsigned int i = 0; i < scene.shapes.size(); i++)
-			{
-				double temp = scene.shapes[i]->collision(test);
-				if(temp > 0)
-				{
-					if(temp < t)
-					{
-						print = true;
-						select = i;
-						t = temp;
-					}
-				}
-			}
-			if(print)
-			{
-				brdf_color = scene.shapes[select]->ambient * scene.shapes[select]->color;
-				for(unsigned int i = 0; i < scene.lights.size(); i++)
-				{
-					Eigen::Vector3d v_vec = -dis;
-					v_vec.normalize();
-					Eigen::Vector3d l_vec = scene.lights[i].position - test.get_point(t);
-					l_vec.normalize();
-					Eigen::Vector3d offset = test.get_point(t - 0.001);
-					Ray shadow(offset, l_vec);
-					Eigen::Vector3d n_vec = scene.shapes[select]->get_normal(test.get_point(t));
-					n_vec.normalize();
-					Eigen::Vector3d h_vec = (v_vec + l_vec).normalized();
+			color = blinn_phong(scene, pixel_ray);
 
-					bool is_shadowed = cast_shadow_ray(shadow, scene.shapes, scene.lights[i]);
-					if(!is_shadowed)
-					{
-						Eigen::Vector3d kd = scene.shapes[select]->diffuse * scene.shapes[select]->color;
-						kd(0) *= scene.lights[i].color(0);
-						kd(1) *= scene.lights[i].color(1);
-						kd(2) *= scene.lights[i].color(2);
-						double stuff = clamp(n_vec.dot(l_vec), 0.0, 1.0);
-						brdf_color += kd * stuff;
-						Eigen::Vector3d ks = scene.shapes[select]->specular * scene.lights[i].color;
-						double val = (2 / (std::pow(scene.shapes[select]->roughness, 2)) - 2);
-						double stuff2 = clamp(std::pow(n_vec.dot(h_vec), val), 0.0, 1.0);
-						brdf_color += ks * stuff2;
-						brdf_color(0) = clamp(brdf_color(0), 0.0, 1.0);
-						brdf_color(1) = clamp(brdf_color(1), 0.0, 1.0);
-						brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
-					}
-				}
-				brdf_color += scene.shapes[select]->reflection * cast_reflect_ray(scene, test);
-				brdf_color(0) = clamp(brdf_color(0), 0.0, 1.0);
-				brdf_color(1) = clamp(brdf_color(1), 0.0, 1.0);
-				brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
-				red = (unsigned char) std::round(brdf_color(0) * 255.f);
-				green = (unsigned char) std::round(brdf_color(1) * 255.f);
-				blue = (unsigned char) std::round(brdf_color(2) * 255.f);
-			}
+			red = (unsigned char) std::round(color(0) * 255.f);
+			green = (unsigned char) std::round(color(1) * 255.f);
+			blue = (unsigned char) std::round(color(2) * 255.f);
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 0] = red;
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 1] = green;
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 2] = blue;
