@@ -12,6 +12,8 @@ Plane::Plane()
 	diffuse = 0.0;
 	specular = 0.0;
 	roughness = 0.5;
+	reflection = 0.0;
+	refraction = 0.0;
 	metallic = 0.0;
 	ior = 1.0;
 }
@@ -43,6 +45,8 @@ void Plane::print(std::ostream &out) const
 	out << "  - Diffuse: " << this->diffuse << std::endl;
 	out << "  - Specular: " << this->specular << std::endl;
 	out << "  - Roughness: " << this->roughness << std::endl;
+	out << "  - Reflection: " << this->reflection << std::endl;
+	out << "  - Refraction: " << this->refraction << std::endl;
 	out << "  - Metallic: " << this->metallic << std::endl;
 	out << "  - Index of Refraction: " << this->ior << std::endl;
 }
@@ -54,10 +58,10 @@ void Plane::print_type(std::ostream &out) const
 
 double Plane::collision(Ray &r)
 {
-	double T = (this->distance - (r.origin.dot(this->normal.normalized())))
+	double time = (this->distance - (r.origin.dot(this->normal.normalized())))
 				/ r.direction.dot(this->normal.normalized());
-	T = T < 0.0 ? 0.0 : T;
-	return T;
+	time = time < 0.0 ? 0.0 : time;
+	return time;
 }
 
 Eigen::Vector3d Plane::get_normal(Eigen::Vector3d point)

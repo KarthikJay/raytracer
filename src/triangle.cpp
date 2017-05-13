@@ -16,6 +16,8 @@ Triangle::Triangle()
 	diffuse = 0.0;
 	specular = 0.0;
 	roughness = 0.5;
+	reflection = 0.0;
+	refraction = 0.0;
 	metallic = 0.0;
 	ior = 1.0;
 }
@@ -40,6 +42,8 @@ void Triangle::print(std::ostream &out) const
 	out << "  - Diffuse: " << this->diffuse << std::endl;
 	out << "  - Specular: " << this->specular << std::endl;
 	out << "  - Roughness: " << this->roughness << std::endl;
+	out << "  - Reflection: " << this->reflection << std::endl;
+	out << "  - Refraction: " << this->refraction << std::endl;
 	out << "  - Metallic: " << this->metallic << std::endl;
 	out << "  - Index of Refraction: " << this->ior << std::endl;
 }

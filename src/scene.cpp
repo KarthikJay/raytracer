@@ -99,6 +99,10 @@ void read_finish(std::stringstream &itr, Shape &shape)
 			itr >> shape.specular;
 		else if(temp == "roughness")
 			itr >> shape.roughness;
+		else if(temp == "reflection")
+			itr >> shape.reflection;
+		else if(temp == "refraction")
+			itr >> shape.refraction;
 		else if(temp == "metallic")
 			itr >> shape.metallic;
 		else if(temp == "ior")

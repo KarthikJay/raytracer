@@ -123,12 +123,43 @@ bool cast_shadow_ray(Ray &test, const std::vector<std::shared_ptr<Shape>> &objec
 	return is_shadowed;
 }
 
-/*
-Eigen::Vector3d cast_reflect_ray(Scene &scene, Eigen::Vector3d reflect, uint depth = 0)
+Eigen::Vector3d cast_reflect_ray(const Scene &scene, Ray &ray, uint depth = 0)
 {
+	Eigen::Vector3d hit_color = Eigen::Vector3d(0, 0, 0);
+	int select = 0;
+	bool print = false;
+	double t = std::numeric_limits<double>::max();
+	if(depth != 6)
+	{
+		for(unsigned int i = 0; i < scene.shapes.size(); i++)
+		{
+			double temp = scene.shapes[i]->collision(ray);
+			if(temp > 0)
+			{
+				if(temp < t)
+				{
+					print = true;
+					select = i;
+					t = temp;
+				}
+			}
+		}
 
+		if(print)
+		{
+			for(uint i = 0; i < scene.lights.size(); i++)
+			{
+				Eigen::Vector3d n_vec = scene.shapes[select]->get_normal(ray.get_point(t));
+				n_vec.normalize();
+				Eigen::Vector3d r_vec = ray.direction - (2 * (ray.direction.dot(n_vec)) * n_vec);
+				r_vec.normalize();
+				Ray reflection = Ray(ray.get_point(t - 0.001), r_vec);
+				hit_color += cast_reflect_ray(scene, reflection, depth + 1);
+			}
+		}
+	}
+	return hit_color;
 }
-*/
 
 void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
 {
@@ -208,6 +239,12 @@ void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
 				brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
 			}
 		}
+		std::cout << "Color before reflection: " << brdf_color.format(ParenthesisFormat) << std::endl;
+		brdf_color += scene.shapes[select]->reflection * cast_reflect_ray(scene, test);
+		brdf_color(0) = clamp(brdf_color(0), 0.0, 1.0);
+		brdf_color(1) = clamp(brdf_color(1), 0.0, 1.0);
+		brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
+		std::cout << "Color after reflection: " << brdf_color.format(ParenthesisFormat) << std::endl;
 		brdf_color *= 255;
 		brdf_color(0) = std::round(brdf_color(0));
 		brdf_color(1) = std::round(brdf_color(1));
@@ -291,6 +328,10 @@ void render(const Scene &scene, bool use_alt = false)
 						brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
 					}
 				}
+				brdf_color += scene.shapes[select]->reflection * cast_reflect_ray(scene, test);
+				brdf_color(0) = clamp(brdf_color(0), 0.0, 1.0);
+				brdf_color(1) = clamp(brdf_color(1), 0.0, 1.0);
+				brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
 				red = (unsigned char) std::round(brdf_color(0) * 255.f);
 				green = (unsigned char) std::round(brdf_color(1) * 255.f);
 				blue = (unsigned char) std::round(brdf_color(2) * 255.f);

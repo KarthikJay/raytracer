@@ -15,6 +15,8 @@ public:
 	double diffuse;
 	double specular;
 	double roughness;
+	double reflection;
+	double refraction;
 	double metallic;
 	double ior;
 	Eigen::Vector3d color;
