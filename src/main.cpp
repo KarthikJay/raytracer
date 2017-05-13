@@ -154,6 +154,8 @@ Eigen::Vector3d cast_reflect_ray(const Scene &scene, Ray &ray, uint depth = 0)
 				Eigen::Vector3d r_vec = ray.direction - (2 * (ray.direction.dot(n_vec)) * n_vec);
 				r_vec.normalize();
 				Ray reflection = Ray(ray.get_point(t - 0.001), r_vec);
+				// TODO(kjayakum): Refactor to get an intersected objects blinn_phong color
+				hit_color += scene.shapes[select]->color * scene.shapes[select]->ambient;
 				hit_color += cast_reflect_ray(scene, reflection, depth + 1);
 			}
 		}
@@ -239,12 +241,10 @@ void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
 				brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
 			}
 		}
-		std::cout << "Color before reflection: " << brdf_color.format(ParenthesisFormat) << std::endl;
 		brdf_color += scene.shapes[select]->reflection * cast_reflect_ray(scene, test);
 		brdf_color(0) = clamp(brdf_color(0), 0.0, 1.0);
 		brdf_color(1) = clamp(brdf_color(1), 0.0, 1.0);
 		brdf_color(2) = clamp(brdf_color(2), 0.0, 1.0);
-		std::cout << "Color after reflection: " << brdf_color.format(ParenthesisFormat) << std::endl;
 		brdf_color *= 255;
 		brdf_color(0) = std::round(brdf_color(0));
 		brdf_color(1) = std::round(brdf_color(1));
