@@ -5,6 +5,7 @@
 #include "scene.hpp"
 #include "sphere.hpp"
 #include "plane.hpp"
+#include "triangle.hpp"
 
 Scene::Scene() {}
 
@@ -98,6 +99,10 @@ void read_finish(std::stringstream &itr, Shape &shape)
 			itr >> shape.specular;
 		else if(temp == "roughness")
 			itr >> shape.roughness;
+		else if(temp == "metallic")
+			itr >> shape.metallic;
+		else if(temp == "ior")
+			itr >> shape.ior;
 	}
 }
 
@@ -188,6 +193,35 @@ void read_planes(std::istream &in, std::string line, Scene &scene)
 	scene.shapes.push_back(cur_plane);
 }
 
+void read_triangles(std::istream &in, std::string line, Scene &scene)
+{
+	std::shared_ptr<Triangle> cur_triangle = std::make_shared<Triangle>();
+	std::string temp;
+	std::string property_line;
+	std::stringstream ss(line);
+
+	// Consume "triangle"
+	ss >> temp;
+
+	for(uint i = 0; i < 3; i++)
+	{
+		getline(in, property_line);
+		replace_markers(property_line);
+		std::stringstream ss2(property_line);
+		ss2 >> (cur_triangle->points[i])(0);
+		ss2 >> (cur_triangle->points[i])(1);
+		ss2 >> (cur_triangle->points[i])(2);
+	}
+	while(property_line != "}")
+	{
+		getline(in, property_line);
+		replace_markers(property_line, false);
+		read_shape_properties(property_line, *cur_triangle);
+	}
+
+	scene.shapes.push_back(cur_triangle);
+}
+
 std::istream &operator>> (std::istream &in, Scene &scene)
 {
 	std::string line;
@@ -203,6 +237,8 @@ std::istream &operator>> (std::istream &in, Scene &scene)
 			read_spheres(in, line, scene);
 		else if(line.find("plane") != std::string::npos)
 			read_planes(in, line, scene);
+		else if(line.find("triangle") != std::string::npos)
+			read_triangles(in, line, scene);
 	}
 	return in;
 }

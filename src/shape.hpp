@@ -15,6 +15,8 @@ public:
 	double diffuse;
 	double specular;
 	double roughness;
+	double metallic;
+	double ior;
 	Eigen::Vector3d color;
 
 	virtual void print_type(std::ostream &out) const = 0;

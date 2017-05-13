@@ -13,6 +13,8 @@ Sphere::Sphere()
 	diffuse = 0.0;
 	specular = 0.0;
 	roughness = 0.5;
+	metallic = 0.0;
+	ior = 1.0;
 }
 
 Sphere::Sphere(Eigen::Vector3d center, double radius,
@@ -42,6 +44,8 @@ void Sphere::print(std::ostream &out) const
 	out << "  - Diffuse: " << this->diffuse << std::endl;
 	out << "  - Specular: " << this->specular << std::endl;
 	out << "  - Roughness: " << this->roughness << std::endl;
+	out << "  - Metallic: " << this->metallic << std::endl;
+	out << "  - Index of Refraction: " << this->ior << std::endl;
 }
 
 double Sphere::collision(Ray &r)

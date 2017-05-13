@@ -123,6 +123,13 @@ bool cast_shadow_ray(Ray &test, const std::vector<std::shared_ptr<Shape>> &objec
 	return is_shadowed;
 }
 
+/*
+Eigen::Vector3d cast_reflect_ray(Scene &scene, Eigen::Vector3d reflect, uint depth = 0)
+{
+
+}
+*/
+
 void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
 {
 	Eigen::Vector3d brdf_color;
