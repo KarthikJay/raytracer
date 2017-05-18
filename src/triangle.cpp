@@ -20,6 +20,7 @@ Triangle::Triangle()
 	refraction = 0.0;
 	metallic = 0.0;
 	ior = 1.0;
+	filter = 0.0;
 }
 
 void Triangle::print_type(std::ostream &out) const
@@ -46,6 +47,7 @@ void Triangle::print(std::ostream &out) const
 	out << "  - Refraction: " << this->refraction << std::endl;
 	out << "  - Metallic: " << this->metallic << std::endl;
 	out << "  - Index of Refraction: " << this->ior << std::endl;
+	out << "  - Filter: " << this->filter << std::endl;
 }
 
 Eigen::Vector3d Triangle::get_normal(Eigen::Vector3d point)

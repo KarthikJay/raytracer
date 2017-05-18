@@ -75,6 +75,21 @@ void firsthit(const Scene &scene, uint x, uint y)
 	}
 }
 
+/*
+void printrays(const Scene &scene, Ray &ray, uint depth = 0, std::string name = "Primary")
+{
+	bool collision = false;
+	int select = 0;
+	double t = std::numeric_limits<double>::max();
+
+	std::cout << "----" << std::endl;
+	std::cout << std::setw(17) << "Iteration type: " << name << std::endl;
+
+
+	std::cout << 
+}
+*/
+
 void pixelray(const Scene &scene, uint x, uint y)
 {
 	Ray temp;
@@ -123,7 +138,7 @@ bool cast_shadow_ray(Ray &test, const std::vector<std::shared_ptr<Shape>> &objec
 	return is_shadowed;
 }
 
-Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0, double n1 = 1.0, bool into = true)
+Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0)
 {
 	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
 	bool collision = false;
@@ -168,11 +183,9 @@ Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0, double 
 				double power = (2 / (std::pow(scene.shapes[select]->roughness, 2)) - 2);
 				double stuff2 = clamp(std::pow(n_vec.dot(h_vec), power), 0.0, 1.0);
 				color += ks * stuff2;
-				color(0) = clamp(color(0), 0.0, 1.0);
-				color(1) = clamp(color(1), 0.0, 1.0);
-				color(2) = clamp(color(2), 0.0, 1.0);
 			}
 		}
+		// TODO(kjayakum): Add a flag to enable reflections
 		if(scene.shapes[select]->reflection > 0)
 		{
 			Eigen::Vector3d n_vec = scene.shapes[select]->get_normal(ray.get_point(t));
@@ -181,30 +194,33 @@ Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0, double 
 			r_vec.normalize();
 			Ray reflection = Ray(ray.get_point(t - 0.001), r_vec);
 			color += scene.shapes[select]->reflection * blinn_phong(scene, reflection, depth + 1);
-			color(0) = clamp(color(0), 0.0, 1.0);
-			color(1) = clamp(color(1), 0.0, 1.0);
-			color(2) = clamp(color(2), 0.0, 1.0);
 		}
+		// TODO(kjayakum): Add a flag to enable refractions
+		// TODO(kjayakum): Add a divide by zero check
 		if(scene.shapes[select]->refraction > 0)
 		{
-			double n2 = scene.shapes[select]->ior;
+			double ior = scene.shapes[select]->refraction;
+			Eigen::Vector3d n = scene.shapes[select]->get_normal(ray.get_point(t));
 			Eigen::Vector3d d = ray.direction;
 			d.normalize();
-			Eigen::Vector3d n = scene.shapes[select]->get_normal(ray.get_point(t));
-			if(!into)
+			// Check if ray is within object
+			if(d.dot(n) < 0)
+			{
 				n = -n;
-			into = !into;
-			Eigen::Vector3d t_vec = (n1/n2) * (d - (d.dot(n) * n));
-			double stuff = std::sqrt(1 - (std::pow(n1/n2, 2) * (1 - std::pow(d.dot(n), 2))));
-			t_vec -= n * stuff;
-			Ray refract(ray.get_point(t - 0.001), t_vec);
-			color += scene.shapes[select]->refraction * blinn_phong(scene, refract, depth + 1, n2, into);
-			color(0) = clamp(color(0), 0.0, 1.0);
-			color(1) = clamp(color(1), 0.0, 1.0);
-			color(2) = clamp(color(2), 0.0, 1.0);
+				ior = 1.003 / ior;
+			}
+			double discriminant = 1 - (std::pow(ior, 2) * (1 - std::pow(d.dot(n), 2)));
+			Eigen::Vector3d t_vec = ior * (d - (d.dot(n) * n));
+			t_vec = t_vec - (n * std::sqrt(discriminant));
+			t_vec.normalize();
+			Ray refract(ray.get_point(t + 0.001), t_vec);
+			color += scene.shapes[select]->refraction * blinn_phong(scene, refract, depth + 1);
 		}
 	}
 
+	color(0) = clamp(color(0), 0.0, 1.0);
+	color(1) = clamp(color(1), 0.0, 1.0);
+	color(2) = clamp(color(2), 0.0, 1.0);
 	return color;
 }
 

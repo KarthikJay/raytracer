@@ -17,6 +17,7 @@ Sphere::Sphere()
 	refraction = 0.0;
 	metallic = 0.0;
 	ior = 1.0;
+	filter = 0.0;
 }
 
 Sphere::Sphere(Eigen::Vector3d center, double radius,
@@ -50,6 +51,7 @@ void Sphere::print(std::ostream &out) const
 	out << "  - Refraction: " << this->refraction << std::endl;
 	out << "  - Metallic: " << this->metallic << std::endl;
 	out << "  - Index of Refraction: " << this->ior << std::endl;
+	out << "  - Filter: " << this->filter << std::endl;
 }
 
 double Sphere::collision(Ray &r)

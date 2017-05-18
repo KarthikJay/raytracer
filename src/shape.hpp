@@ -19,6 +19,7 @@ public:
 	double refraction;
 	double metallic;
 	double ior;
+	double filter;
 	Eigen::Vector3d color;
 
 	virtual void print_type(std::ostream &out) const = 0;

@@ -16,6 +16,7 @@ Plane::Plane()
 	refraction = 0.0;
 	metallic = 0.0;
 	ior = 1.0;
+	filter = 0.0;
 }
 
 Plane::Plane(Eigen::Vector3d normal, double distance,
@@ -49,6 +50,7 @@ void Plane::print(std::ostream &out) const
 	out << "  - Refraction: " << this->refraction << std::endl;
 	out << "  - Metallic: " << this->metallic << std::endl;
 	out << "  - Index of Refraction: " << this->ior << std::endl;
+	out << "  - Filter: " << this->filter << std::endl;
 }
 
 void Plane::print_type(std::ostream &out) const
