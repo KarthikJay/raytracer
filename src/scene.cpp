@@ -77,12 +77,14 @@ void read_pigment(std::stringstream &itr, Shape &shape)
 
 	// Consume "color"
 	itr >> temp;
-	// Consume "rgb"
+	// Consume "rgb/f"
 	itr >> temp;
 
 	itr >> shape.color(0);
 	itr >> shape.color(1);
 	itr >> shape.color(2);
+	if(temp == "rgbf")
+		itr >> shape.filter;
 }
 
 void read_finish(std::stringstream &itr, Shape &shape)
