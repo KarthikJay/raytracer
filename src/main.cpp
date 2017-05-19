@@ -138,7 +138,7 @@ bool cast_shadow_ray(Ray &test, const std::vector<std::shared_ptr<Shape>> &objec
 	return is_shadowed;
 }
 
-Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0, double ior = 1.003)
+Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray/*, int depth = 0, double ior = 1.003*/)
 {
 	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
 	bool collision = false;
@@ -185,19 +185,76 @@ Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0, double 
 				color += ks * stuff2;
 			}
 		}
-		// TODO(kjayakum): Add a flag to enable reflections
-		if(scene.shapes[select]->reflection > 0)
+	}
+
+	color(0) = clamp(color(0), 0.0, 1.0);
+	color(1) = clamp(color(1), 0.0, 1.0);
+	color(2) = clamp(color(2), 0.0, 1.0);
+
+	return color;
+}
+
+// TODO(kjayakum): Setup alternative shader besides blinn_phong
+Eigen::Vector3d get_reflection(const Scene &scene, Ray &ray, int depth = 0)
+{
+	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
+	bool collision = false;
+	int select = 0;
+	double t = std::numeric_limits<double>::max();
+
+	for(uint i = 0; i < scene.shapes.size(); i++)
+	{
+		double temp = scene.shapes[i]->collision(ray);
+		if(temp > 0 && temp < t)
+		{
+			collision = true;
+			select = i;
+			t = temp;
+		}
+	}
+
+	if(collision)
+	{
+		color = 0.5 * blinn_phong(scene, ray);
+		if(scene.shapes[select]->reflection > 0 && depth <= 6)
 		{
 			Eigen::Vector3d n_vec = scene.shapes[select]->get_normal(ray.get_point(t));
 			n_vec.normalize();
 			Eigen::Vector3d r_vec = ray.direction - (2 * (ray.direction.dot(n_vec)) * n_vec);
 			r_vec.normalize();
 			Ray reflection = Ray(ray.get_point(t - 0.001), r_vec);
-			color += scene.shapes[select]->reflection * blinn_phong(scene, reflection, depth + 1);
+			color += scene.shapes[select]->reflection * get_reflection(scene, reflection, depth + 1);
 		}
-		// TODO(kjayakum): Add a flag to enable refractions
-		// TODO(kjayakum): Add a divide by zero check
-		if(scene.shapes[select]->refraction > 0)
+	}
+
+	color(0) = clamp(color(0), 0.0, 1.0);
+	color(1) = clamp(color(1), 0.0, 1.0);
+	color(2) = clamp(color(2), 0.0, 1.0);
+	return color;
+}
+
+Eigen::Vector3d get_refraction(const Scene &scene, Ray &ray, int depth = 0, double ior = 1.003)
+{
+	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
+	bool collision = false;
+	int select = 0;
+	double t = std::numeric_limits<double>::max();
+
+	for(uint i = 0; i < scene.shapes.size(); i++)
+	{
+		double temp = scene.shapes[i]->collision(ray);
+		if(temp > 0 && temp < t)
+		{
+			collision = true;
+			select = i;
+			t = temp;
+		}
+	}
+
+	if(collision)
+	{
+		color = 0.5 * blinn_phong(scene, ray);
+		if((scene.shapes[select]->refraction > 0 || scene.shapes[select]->filter> 0) && depth <= 6)
 		{
 			double final_ior;
 			double ior2 = scene.shapes[select]->ior;
@@ -219,7 +276,10 @@ Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0, double 
 			t_vec = t_vec - (n * std::sqrt(discriminant));
 			t_vec.normalize();
 			Ray refract(ray.get_point(t + 0.001), t_vec);
-			color += scene.shapes[select]->refraction * blinn_phong(scene, refract, depth + 1, ior2);
+			if(scene.shapes[select]->refraction > 0)
+				color += scene.shapes[select]->refraction * get_refraction(scene, refract, depth + 1);
+			else
+				color += scene.shapes[select]->filter * get_refraction(scene, refract, depth + 1);
 		}
 	}
 
@@ -227,6 +287,32 @@ Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0, double 
 	color(1) = clamp(color(1), 0.0, 1.0);
 	color(2) = clamp(color(2), 0.0, 1.0);
 	return color;
+}
+
+std::shared_ptr<Shape> get_shape(const Scene &scene, Ray &ray)
+{
+	std::shared_ptr<Shape> hit_object = NULL;
+	bool collision = false;
+	int select = 0;
+	double t = std::numeric_limits<double>::max();
+
+	for(uint i = 0; i < scene.shapes.size(); i++)
+	{
+		double temp = scene.shapes[i]->collision(ray);
+		if(temp > 0 && temp < t)
+		{
+			collision = true;
+			select = i;
+			t = temp;
+		}
+	}
+
+	if(collision)
+	{
+		hit_object = scene.shapes[select];
+	}
+
+	return hit_object;
 }
 
 void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
@@ -338,8 +424,28 @@ void render(const Scene &scene, bool use_alt = false)
 			Eigen::Vector3d dis = ((scene.view.right * u) + (scene.view.up.normalized() * v) + (w * look.normalized())).normalized();
 			Ray pixel_ray(scene.view.position, dis);
 			Eigen::Vector3d color;
+			std::shared_ptr<Shape> hit_shape = get_shape(scene, pixel_ray);
 
-			color = blinn_phong(scene, pixel_ray);
+			Eigen::Vector3d local_color = blinn_phong(scene, pixel_ray);
+			Eigen::Vector3d reflection_color = get_reflection(scene, pixel_ray);
+			Eigen::Vector3d refraction_color = get_refraction(scene, pixel_ray);
+
+			if(hit_shape)
+			{
+				double local_contribution = (1 - hit_shape->filter) * (1 - hit_shape->reflection);
+				double reflection_contribution = (1 - hit_shape->filter) * hit_shape->reflection
+												+ hit_shape->filter;
+				double refraction_contribution = hit_shape->filter;
+
+				color = local_contribution * local_color
+						+ reflection_contribution * reflection_color
+						+ refraction_contribution * refraction_color;
+			}
+			else
+				color = local_color + reflection_color + refraction_color;
+			color(0) = clamp(color(0), 0.0, 1.0);
+			color(1) = clamp(color(1), 0.0, 1.0);
+			color(2) = clamp(color(2), 0.0, 1.0);
 
 			red = (unsigned char) std::round(color(0) * 255.f);
 			green = (unsigned char) std::round(color(1) * 255.f);
