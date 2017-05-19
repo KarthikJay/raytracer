@@ -138,7 +138,7 @@ bool cast_shadow_ray(Ray &test, const std::vector<std::shared_ptr<Shape>> &objec
 	return is_shadowed;
 }
 
-Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0)
+Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0, double ior = 1.003)
 {
 	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
 	bool collision = false;
@@ -199,22 +199,27 @@ Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, int depth = 0)
 		// TODO(kjayakum): Add a divide by zero check
 		if(scene.shapes[select]->refraction > 0)
 		{
-			double ior = scene.shapes[select]->refraction;
+			double final_ior;
+			double ior2 = scene.shapes[select]->ior;
 			Eigen::Vector3d n = scene.shapes[select]->get_normal(ray.get_point(t));
 			Eigen::Vector3d d = ray.direction;
-			d.normalize();
 			// Check if ray is within object
+			// TODO(kjayakum): Ask The professor why the opposite check works?
 			if(d.dot(n) < 0)
 			{
-				n = -n;
-				ior = 1.003 / ior;
+				final_ior = ior / ior2;
 			}
-			double discriminant = 1 - (std::pow(ior, 2) * (1 - std::pow(d.dot(n), 2)));
-			Eigen::Vector3d t_vec = ior * (d - (d.dot(n) * n));
+			else
+			{
+				n = -n;
+				final_ior = ior2 / ior;
+			}
+			double discriminant = 1 - (std::pow((final_ior), 2) * (1 - std::pow(d.dot(n), 2)));
+			Eigen::Vector3d t_vec = (final_ior) * (d - (d.dot(n) * n));
 			t_vec = t_vec - (n * std::sqrt(discriminant));
 			t_vec.normalize();
 			Ray refract(ray.get_point(t + 0.001), t_vec);
-			color += scene.shapes[select]->refraction * blinn_phong(scene, refract, depth + 1);
+			color += scene.shapes[select]->refraction * blinn_phong(scene, refract, depth + 1, ior2);
 		}
 	}
 
