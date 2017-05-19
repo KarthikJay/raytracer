@@ -88,7 +88,7 @@ void read_pigment(std::stringstream &itr, Shape &shape)
 void read_finish(std::stringstream &itr, Shape &shape)
 {
 	std::string temp;
-	while(temp != "}")
+	while(temp != "}" && temp != "}}")
 	{
 		itr >> temp;
 		if(temp == "ambient")
@@ -110,8 +110,11 @@ void read_finish(std::stringstream &itr, Shape &shape)
 	}
 }
 
-void read_shape_properties(std::string input, Shape &shape)
+// TODO(kjayakum): Fix if shape ending brace is on same line
+void read_shape_properties(std::string &input, Shape &shape)
 {
+	std::size_t second_brace = input.find("}");
+	second_brace = input.find("}", second_brace + 1);
 	std::string temp;
 	std::replace(input.begin(), input.end(), '{', ' ');
 	std::stringstream ss(input);
@@ -121,6 +124,9 @@ void read_shape_properties(std::string input, Shape &shape)
 		read_pigment(ss, shape);
 	else if(temp == "finish")
 		read_finish(ss, shape);
+
+	if(second_brace != std::string::npos)
+		input.erase(input.begin(), input.begin() + second_brace);
 }
 
 // Light Sources are assumed to be single line
