@@ -21,6 +21,7 @@ public:
 	double ior;
 	double filter;
 	Eigen::Vector3d color;
+	Eigen::Matrix4d inverse_transform;
 
 	virtual void print_type(std::ostream &out) const = 0;
 	virtual double collision(Ray &r) = 0;

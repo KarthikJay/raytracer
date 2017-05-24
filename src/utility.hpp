@@ -10,11 +10,13 @@ enum class Command : int
 	PIXELRAY,
 	FIRSTHIT,
 	PIXELCOLOR,
-	PIXELTRACE
+	PIXELTRACE,
+	PRINTRAYS
 };
 
 // Utility functions
 void parse_optional(int argc, char *argv[], std::vector<unsigned int> &optional);
 Command is_valid_command(int argc, char *argv[]);
+uint get_supersample(int argc, char *argv[]);
 
 #endif

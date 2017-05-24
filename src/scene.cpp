@@ -34,10 +34,23 @@ void replace_markers(std::string &line, bool replace_braces = true)
 	std::replace(line.begin(), line.end(), ',', ' ');
 }
 
-void read_camera(std::istream &in, Scene &scene)
+// TODO(kjayakum): Rafactor the below function better
+void read_camera(std::istream &in, Scene &scene, std::string line)
 {
 	std::string temp;
-	std::string line;
+	if(line != "camera")
+	{
+		std::stringstream ss(line);
+		ss >> temp;
+		ss >> temp;
+
+		if(temp == "location")
+		{
+			ss >> scene.view.position(0);
+			ss >> scene.view.position(1);
+			ss >> scene.view.position(2);
+		}
+	}
 	while(line != "}")
 	{
 		getline(in, line);
@@ -112,7 +125,54 @@ void read_finish(std::stringstream &itr, Shape &shape)
 	}
 }
 
-// TODO(kjayakum): Fix if shape ending brace is on same line
+Eigen::Affine3d create_rotation_matrix(double x, double y, double z)
+{
+	Eigen::Affine3d rx = 
+		Eigen::Affine3d(Eigen::AngleAxisd(x, Eigen::Vector3d(1, 0, 0)));
+	Eigen::Affine3d ry =
+		Eigen::Affine3d(Eigen::AngleAxisd(y, Eigen::Vector3d(0, 1, 0)));
+	Eigen::Affine3d rz =
+		Eigen::Affine3d(Eigen::AngleAxisd(z, Eigen::Vector3d(0, 0, 1)));
+
+	return rz * ry * rx;
+}
+
+void read_scale(std::stringstream &itr, Shape &shape)
+{
+	double x, y, z;
+	itr >> x;
+	itr >> y;
+	itr >> z;
+	Eigen::Matrix4d scale = Eigen::Matrix4d::Identity();
+	scale(0, 0) = x;
+	scale(1, 1) = y;
+	scale(2, 2) = z;
+	shape.inverse_transform *= scale;
+}
+
+void read_rotation(std::stringstream &itr, Shape &shape)
+{
+	double x, y, z;
+	itr >> x;
+	itr >> y;
+	itr >> z;
+	x = x * M_PI / 180.0;
+	y = y * M_PI / 180.0;
+	z = z * M_PI / 180.0;
+	Eigen::Affine3d rotation = create_rotation_matrix(x, y, z);
+	shape.inverse_transform *= rotation.matrix();
+}
+
+void read_translation(std::stringstream &itr, Shape &shape)
+{
+	double x, y, z;
+	itr >> x;
+	itr >> y;
+	itr >> z;
+	Eigen::Affine3d translation(Eigen::Translation3d(Eigen::Vector3d(x, y, z)));
+	shape.inverse_transform *= translation.matrix();
+}
+
 void read_shape_properties(std::string &input, Shape &shape)
 {
 	std::size_t second_brace = input.find("}");
@@ -126,6 +186,12 @@ void read_shape_properties(std::string &input, Shape &shape)
 		read_pigment(ss, shape);
 	else if(temp == "finish")
 		read_finish(ss, shape);
+	else if(temp == "scale")
+		read_scale(ss, shape);
+	else if(temp == "rotate")
+		read_rotation(ss, shape);
+	else if(temp == "translate")
+		read_translation(ss, shape);
 
 	if(second_brace != std::string::npos)
 		input.erase(input.begin(), input.begin() + second_brace);
@@ -177,7 +243,7 @@ void read_spheres(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_sphere);
 	}
-
+	cur_sphere->inverse_transform.inverse();
 	scene.shapes.push_back(cur_sphere);
 }
 
@@ -201,7 +267,7 @@ void read_planes(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_plane);
 	}
-
+	cur_plane->inverse_transform.inverse();
 	scene.shapes.push_back(cur_plane);
 }
 
@@ -230,7 +296,7 @@ void read_triangles(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_triangle);
 	}
-
+	cur_triangle->inverse_transform.inverse();
 	scene.shapes.push_back(cur_triangle);
 }
 
@@ -242,7 +308,7 @@ std::istream &operator>> (std::istream &in, Scene &scene)
 		remove_comment(line);
 		replace_markers(line);
 		if(line.find("camera") != std::string::npos)
-			read_camera(in, scene);
+			read_camera(in, scene, line);
 		else if(line.find("light_source") != std::string::npos)
 			read_light(line, scene);
 		else if(line.find("sphere") != std::string::npos)

@@ -11,7 +11,8 @@ Triangle::Triangle()
 		itr = Eigen::Vector3d(0.0, 0.0, 0.0);
 	}
 
-	color = Eigen::Vector3d(0.0, 0.0, 0.0); 
+	color = Eigen::Vector3d(0.0, 0.0, 0.0);
+	inverse_transform = Eigen::Matrix4d::Identity();
 	ambient = 0.0;
 	diffuse = 0.0;
 	specular = 0.0;

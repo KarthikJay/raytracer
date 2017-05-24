@@ -2,6 +2,10 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include <cstring>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "utility.hpp"
 
@@ -15,6 +19,26 @@ void parse_optional(int argc, char *argv[], std::vector<unsigned int> &optional)
 		ss >> temp;
 		optional.push_back(temp);
 	}
+}
+
+// TODO(kjayakum): Provide more robust error checking and valid indexes
+uint get_supersample(int argc, char *argv[])
+{
+	std::string ss_flag = "-ss=";
+	char *ss_num;
+	uint sample_size;
+	for(int i = 3; i < argc; i++)
+	{
+		ss_num = strstr(argv[i], ss_flag.c_str());
+		if(ss_num)
+		{
+			ss_num += 4;
+			sample_size = strtoul(ss_num, NULL, 0);
+			break;
+		}
+	}
+	sample_size = sample_size != 0 ? sample_size : 1;
+	return sample_size;
 }
 
 Command is_valid_command(int argc, char *argv[])
@@ -42,6 +66,8 @@ Command is_valid_command(int argc, char *argv[])
 		type = Command::FIRSTHIT;
 	else if(cur == "pixelcolor")
 		type = Command::PIXELCOLOR;
+	else if(cur == "printrays")
+		type = Command::PRINTRAYS;
 	else
 	{
 		std::cerr << "Invalid command entered" << std::endl;

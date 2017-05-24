@@ -28,6 +28,20 @@ T clamp(const T n, const T lower, const T upper)
 	return std::max(lower, std::min(n, upper));
 }
 
+Ray get_pixel_ray(const Scene &scene, uint x, uint y)
+{
+	double u = -0.5 + ((x + 0.5)) / scene.width;
+	double v = -0.5 + ((y + 0.5)) / scene.height;
+	double w = -1;
+	Eigen::Vector3d look = scene.view.right.cross(scene.view.up.normalized());
+	Eigen::Vector3d dis = ((scene.view.right * u)
+						+ (scene.view.up.normalized() * v)
+						+ (w * look.normalized())).normalized();
+	Ray pixel_ray(scene.view.position, dis);
+
+	return pixel_ray;
+}
+
 void firsthit(const Scene &scene, uint x, uint y)
 {
 	double u = -0.5 + ((x + 0.5) / scene.width);
@@ -74,21 +88,6 @@ void firsthit(const Scene &scene, uint x, uint y)
 		std::cout << "No Hit" << std::endl;
 	}
 }
-
-/*
-void printrays(const Scene &scene, Ray &ray, uint depth = 0, std::string name = "Primary")
-{
-	bool collision = false;
-	int select = 0;
-	double t = std::numeric_limits<double>::max();
-
-	std::cout << "----" << std::endl;
-	std::cout << std::setw(17) << "Iteration type: " << name << std::endl;
-
-
-	std::cout << 
-}
-*/
 
 void pixelray(const Scene &scene, uint x, uint y)
 {
@@ -138,7 +137,33 @@ bool cast_shadow_ray(Ray &test, const std::vector<std::shared_ptr<Shape>> &objec
 	return is_shadowed;
 }
 
-Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray/*, int depth = 0, double ior = 1.003*/)
+std::shared_ptr<Shape> get_shape(const Scene &scene, Ray &ray)
+{
+	std::shared_ptr<Shape> hit_object = NULL;
+	bool collision = false;
+	int select = 0;
+	double t = std::numeric_limits<double>::max();
+
+	for(uint i = 0; i < scene.shapes.size(); i++)
+	{
+		double temp = scene.shapes[i]->collision(ray);
+		if(temp > 0 && temp < t)
+		{
+			collision = true;
+			select = i;
+			t = temp;
+		}
+	}
+
+	if(collision)
+	{
+		hit_object = scene.shapes[select];
+	}
+
+	return hit_object;
+}
+
+Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray)
 {
 	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
 	bool collision = false;
@@ -260,8 +285,7 @@ Eigen::Vector3d get_refraction(const Scene &scene, Ray &ray, int depth = 0, doub
 			double ior2 = scene.shapes[select]->ior;
 			Eigen::Vector3d n = scene.shapes[select]->get_normal(ray.get_point(t));
 			Eigen::Vector3d d = ray.direction;
-			// Check if ray is within object
-			// TODO(kjayakum): Ask The professor why the opposite check works?
+			// Check if ray is outside an object
 			if(d.dot(n) < 0)
 			{
 				final_ior = ior / ior2;
@@ -287,32 +311,6 @@ Eigen::Vector3d get_refraction(const Scene &scene, Ray &ray, int depth = 0, doub
 	color(1) = clamp(color(1), 0.0, 1.0);
 	color(2) = clamp(color(2), 0.0, 1.0);
 	return color;
-}
-
-std::shared_ptr<Shape> get_shape(const Scene &scene, Ray &ray)
-{
-	std::shared_ptr<Shape> hit_object = NULL;
-	bool collision = false;
-	int select = 0;
-	double t = std::numeric_limits<double>::max();
-
-	for(uint i = 0; i < scene.shapes.size(); i++)
-	{
-		double temp = scene.shapes[i]->collision(ray);
-		if(temp > 0 && temp < t)
-		{
-			collision = true;
-			select = i;
-			t = temp;
-		}
-	}
-
-	if(collision)
-	{
-		hit_object = scene.shapes[select];
-	}
-
-	return hit_object;
 }
 
 void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
@@ -405,7 +403,44 @@ void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
 	}
 }
 
-void render(const Scene &scene, bool use_alt = false)
+// TODO(kjayakum): Include refraction/reflection prints
+void printrays(const Scene &scene, Ray &ray, uint depth = 0, std::string name = "Primary")
+{
+	//bool collision = false;
+	//int select = 0;
+	//double t = std::numeric_limits<double>::max();
+	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
+
+	std::cout << "----" << std::endl;
+	std::cout << std::setw(18) << "Iteration type: " << name << std::endl;
+	std::cout << std::setw(18) << "Ray: " << "{" << ray.origin.format(SpaceFormat) << "} -> {";
+	std::cout << ray.direction.format(SpaceFormat) << "}" << std::endl;
+	
+	std::shared_ptr<Shape> hit_shape = get_shape(scene, ray);
+
+	if(hit_shape)
+	{
+		Eigen::Vector4d transform_ray = Eigen::Vector4d::Zero();
+		Eigen::Vector4d transform_pos = Eigen::Vector4d::Zero();
+		transform_ray(0) = ray.direction(0);
+		transform_ray(1) = ray.direction(1);
+		transform_ray(2) = ray.direction(2);
+		transform_pos(0) = ray.origin(0);
+		transform_pos(1) = ray.origin(1);
+		transform_pos(2) = ray.origin(2);
+		transform_pos(3) = 1;
+		transform_ray = hit_shape->inverse_transform * transform_ray;
+		transform_pos = hit_shape->inverse_transform * transform_pos;
+		Ray object_ray(Eigen::Vector3d(transform_pos(0), transform_pos(1), transform_pos(2)),
+					Eigen::Vector3d(transform_ray(0), transform_ray(1), transform_ray(2)));
+		std::cout << std::setw(18) << "Transformed Ray: " << "{" << object_ray.origin.format(SpaceFormat) << "} -> {";
+		std::cout << object_ray.direction.format(SpaceFormat) << "}" << std::endl;
+	}
+
+
+}
+
+void render(const Scene &scene, uint sample_size, bool use_alt = false)
 {
 	const int num_channels = 3;
 	const std::string filename = "output.png";
@@ -415,41 +450,49 @@ void render(const Scene &scene, bool use_alt = false)
 	{
 		for(unsigned int x = 0; x < scene.width; ++x)
 		{
-			double u = -0.5 + ((x + 0.5) / scene.width);
-			double v = -0.5 + ((y + 0.5) / scene.height);
-			double w = -1;
 			unsigned char red = 0, green = 0, blue = 0;
-
-			Eigen::Vector3d look = scene.view.right.cross(scene.view.up.normalized());
-			Eigen::Vector3d dis = ((scene.view.right * u) + (scene.view.up.normalized() * v) + (w * look.normalized())).normalized();
-			Ray pixel_ray(scene.view.position, dis);
-			Eigen::Vector3d color;
-			std::shared_ptr<Shape> hit_shape = get_shape(scene, pixel_ray);
-
-			Eigen::Vector3d local_color = blinn_phong(scene, pixel_ray);
-			Eigen::Vector3d reflection_color = get_reflection(scene, pixel_ray);
-			Eigen::Vector3d refraction_color = get_refraction(scene, pixel_ray);
-
-			if(hit_shape)
+			Eigen::Vector3d sample_color = Eigen::Vector3d::Zero();
+			for(uint sub_pixel = 0; sub_pixel < sample_size; sub_pixel++)
 			{
-				double local_contribution = (1 - hit_shape->filter) * (1 - hit_shape->reflection);
-				double reflection_contribution = (1 - hit_shape->filter) * hit_shape->reflection
-												+ hit_shape->filter;
-				double refraction_contribution = hit_shape->filter;
+				double sample_offset = -0.5 + ((sub_pixel + 0.5) / sample_size);
+				double u = -0.5 + ((x + 0.5 + sample_offset) / scene.width);
+				double v = -0.5 + ((y + 0.5 + sample_offset) / scene.height);
+				double w = -1;
 
-				color = local_contribution * local_color
-						+ reflection_contribution * reflection_color
-						+ refraction_contribution * refraction_color;
+				Eigen::Vector3d look = scene.view.right.cross(scene.view.up.normalized());
+				Eigen::Vector3d dis = ((scene.view.right * u)
+									+ (scene.view.up.normalized() * v)
+									+ (w * look.normalized())).normalized();
+				Ray pixel_ray(scene.view.position, dis);
+				Eigen::Vector3d color;
+				std::shared_ptr<Shape> hit_shape = get_shape(scene, pixel_ray);
+
+				Eigen::Vector3d local_color = blinn_phong(scene, pixel_ray);
+				Eigen::Vector3d reflection_color = get_reflection(scene, pixel_ray);
+				Eigen::Vector3d refraction_color = get_refraction(scene, pixel_ray);
+
+				if(hit_shape)
+				{
+					double local_contribution = (1 - hit_shape->filter) * (1 - hit_shape->reflection);
+					double reflection_contribution = (1 - hit_shape->filter) * hit_shape->reflection
+													+ hit_shape->filter;
+					double refraction_contribution = hit_shape->filter;
+
+					color = local_contribution * local_color
+							+ reflection_contribution * reflection_color
+							+ refraction_contribution * refraction_color;
+				}
+				else
+					color = local_color + reflection_color + refraction_color;
+				color(0) = clamp(color(0), 0.0, 1.0);
+				color(1) = clamp(color(1), 0.0, 1.0);
+				color(2) = clamp(color(2), 0.0, 1.0);
+				sample_color += color;
 			}
-			else
-				color = local_color + reflection_color + refraction_color;
-			color(0) = clamp(color(0), 0.0, 1.0);
-			color(1) = clamp(color(1), 0.0, 1.0);
-			color(2) = clamp(color(2), 0.0, 1.0);
-
-			red = (unsigned char) std::round(color(0) * 255.f);
-			green = (unsigned char) std::round(color(1) * 255.f);
-			blue = (unsigned char) std::round(color(2) * 255.f);
+			sample_color /= sample_size;
+			red = (unsigned char) std::round(sample_color(0) * 255.f);
+			green = (unsigned char) std::round(sample_color(1) * 255.f);
+			blue = (unsigned char) std::round(sample_color(2) * 255.f);
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 0] = red;
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 1] = green;
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 2] = blue;
@@ -477,7 +520,7 @@ int main(int argc, char *argv[])
 	{
 		case Command::RENDER:
 			scene.set_scene_dimensions(options[0], options[1]);
-			render(scene);
+			render(scene, get_supersample(argc, argv));
 			break;
 		case Command::FIRSTHIT:
 			scene.set_scene_dimensions(options[0], options[1]);
@@ -496,6 +539,11 @@ int main(int argc, char *argv[])
 			break;
 		case Command::PIXELTRACE:
 			scene.set_scene_dimensions(options[0], options[1]);
+			break;
+		case Command::PRINTRAYS:
+			scene.set_scene_dimensions(options[0], options[1]);
+			Ray temp = get_pixel_ray(scene, options[2], options[3]);
+			printrays(scene, temp);
 			break;
 	}
 	return 0;
