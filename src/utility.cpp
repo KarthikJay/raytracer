@@ -21,7 +21,6 @@ void parse_optional(int argc, char *argv[], std::vector<unsigned int> &optional)
 	}
 }
 
-// TODO(kjayakum): Provide more robust error checking and valid indexes
 uint get_supersample(int argc, char *argv[])
 {
 	std::string ss_flag = "-ss=";

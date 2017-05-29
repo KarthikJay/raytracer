@@ -163,6 +163,16 @@ std::shared_ptr<Shape> get_shape(const Scene &scene, Ray &ray)
 	return hit_object;
 }
 
+double get_intersection_time(std::shared_ptr<Shape> hit_shape, Ray &ray)
+{
+	return hit_shape ? hit_shape->collision(ray) : std::numeric_limits<double>::max();
+}
+
+Eigen::Vector3d get_ambient_color(std::shared_ptr<Shape> hit_shape)
+{
+	return hit_shape->ambient * hit_shape->color;
+}
+
 Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray)
 {
 	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
@@ -403,41 +413,6 @@ void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
 	}
 }
 
-// TODO(kjayakum): Include refraction/reflection prints
-void printrays(const Scene &scene, Ray &ray, uint depth = 0, std::string name = "Primary")
-{
-	//bool collision = false;
-	//int select = 0;
-	//double t = std::numeric_limits<double>::max();
-	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
-
-	std::cout << "----" << std::endl;
-	std::cout << std::setw(18) << "Iteration type: " << name << std::endl;
-	std::cout << std::setw(18) << "Ray: " << "{" << ray.origin.format(SpaceFormat) << "} -> {";
-	std::cout << ray.direction.format(SpaceFormat) << "}" << std::endl;
-	
-	std::shared_ptr<Shape> hit_shape = get_shape(scene, ray);
-
-	if(hit_shape)
-	{
-		Eigen::Vector4d transform_ray = Eigen::Vector4d::Zero();
-		Eigen::Vector4d transform_pos = Eigen::Vector4d::Zero();
-		transform_ray(0) = ray.direction(0);
-		transform_ray(1) = ray.direction(1);
-		transform_ray(2) = ray.direction(2);
-		transform_pos(0) = ray.origin(0);
-		transform_pos(1) = ray.origin(1);
-		transform_pos(2) = ray.origin(2);
-		transform_pos(3) = 1;
-		transform_ray = hit_shape->inverse_transform * transform_ray;
-		transform_pos = hit_shape->inverse_transform * transform_pos;
-		Ray object_ray(Eigen::Vector3d(transform_pos(0), transform_pos(1), transform_pos(2)),
-					Eigen::Vector3d(transform_ray(0), transform_ray(1), transform_ray(2)));
-		std::cout << std::setw(18) << "Transformed Ray: " << "{" << object_ray.origin.format(SpaceFormat) << "} -> {";
-		std::cout << object_ray.direction.format(SpaceFormat) << "}" << std::endl;
-	}
-}
-
 Eigen::Vector3d get_pixel_color(const Scene &scene, uint x, uint y, uint sample_size = 1)
 {
 	Eigen::Vector3d pixel_color = Eigen::Vector3d::Zero();
@@ -470,6 +445,75 @@ Eigen::Vector3d get_pixel_color(const Scene &scene, uint x, uint y, uint sample_
 	}
 	pixel_color /= sample_size;
 	return pixel_color;
+}
+
+uint get_shape_id(const Scene &scene, std::shared_ptr<Shape> search)
+{
+	uint shape_id;
+
+	for(uint i = 0; i < scene.shapes.size(); i++)
+	{
+		if(search == scene.shapes[i])
+		{
+			shape_id = i + 1;
+			break;
+		}
+	}
+
+	return shape_id;
+}
+
+// TODO(kjayakum): Include refraction/reflection prints
+void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string name = "Primary")
+{
+	Ray pixel_ray = get_pixel_ray(scene, x, y);
+	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
+	std::shared_ptr<Shape> hit_shape = get_shape(scene, pixel_ray);
+	double intersection_time = get_intersection_time(hit_shape, pixel_ray);
+
+	std::cout << "----" << std::endl;
+	std::cout << std::setw(18) << "Iteration type: " << name << std::endl;
+	std::cout << std::setw(18) << "Ray: " << "{" << pixel_ray.origin.format(SpaceFormat);
+	std::cout << "} -> {" << pixel_ray.direction.format(SpaceFormat) << "}" << std::endl;
+
+	if(hit_shape)
+	{
+		std::cout << std::setw(18) << "Hit Object: " << "(ID #" << get_shape_id(scene, hit_shape);
+		std::cout << " - ";
+		hit_shape->print_type(std::cout);
+		std::cout << ")" << std::endl;
+
+		std::cout << std::setw(18) << "Intersection: ";
+		std::cout << "{" << pixel_ray.get_point(intersection_time).format(SpaceFormat) << "} ";
+		std::cout << "at T = " << intersection_time << std::endl;
+
+		std::cout << std::setw(18) << "Normal: ";
+		std::cout << "{" << hit_shape->get_normal(pixel_ray.get_point(intersection_time)).format(SpaceFormat);
+		std::cout << "}" << std::endl;
+		
+		std::cout << std::setw(18) << "Final Color: ";
+		std::cout << "{" << get_pixel_color(scene, x , y).format(SpaceFormat) << "}" << std::endl;
+
+		std::cout << std::setw(18) << "Ambient: ";
+		std::cout << "{" << get_ambient_color(hit_shape).format(SpaceFormat) << "}" << std::endl;
+		/*
+		Eigen::Vector4d transform_ray = Eigen::Vector4d::Zero();
+		Eigen::Vector4d transform_pos = Eigen::Vector4d::Zero();
+		transform_ray(0) = ray.direction(0);
+		transform_ray(1) = ray.direction(1);
+		transform_ray(2) = ray.direction(2);
+		transform_pos(0) = ray.origin(0);
+		transform_pos(1) = ray.origin(1);
+		transform_pos(2) = ray.origin(2);
+		transform_pos(3) = 1;
+		transform_ray = hit_shape->inverse_transform * transform_ray;
+		transform_pos = hit_shape->inverse_transform * transform_pos;
+		Ray object_ray(Eigen::Vector3d(transform_pos(0), transform_pos(1), transform_pos(2)),
+					Eigen::Vector3d(transform_ray(0), transform_ray(1), transform_ray(2)));
+		std::cout << std::setw(18) << "Transformed Ray: " << "{" << object_ray.origin.format(SpaceFormat) << "} -> {";
+		std::cout << object_ray.direction.format(SpaceFormat) << "}" << std::endl;
+		*/
+	}
 }
 
 void render(const Scene &scene, uint sample_size, bool use_alt = false)
@@ -537,8 +581,8 @@ int main(int argc, char *argv[])
 			break;
 		case Command::PRINTRAYS:
 			scene.set_scene_dimensions(options[0], options[1]);
-			Ray temp = get_pixel_ray(scene, options[2], options[3]);
-			printrays(scene, temp);
+			//Ray temp = get_pixel_ray(scene, options[2], options[3]);
+			printrays(scene, options[2], options[3]);
 			break;
 	}
 	return 0;
