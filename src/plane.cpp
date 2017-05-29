@@ -6,18 +6,7 @@ Plane::Plane()
 {
 	normal = Eigen::Vector3d(0.0, 0.0, 0.0);
 	distance = 0.0;
-
-	color = Eigen::Vector3d(0.0, 0.0, 0.0);
-	inverse_transform = Eigen::Matrix4d::Identity();
-	ambient = 0.0;
-	diffuse = 0.0;
-	specular = 0.0;
-	roughness = 0.5;
-	reflection = 0.0;
-	refraction = 0.0;
-	metallic = 0.0;
-	ior = 1.0;
-	filter = 0.0;
+	set_material_defaults();
 }
 
 Plane::Plane(Eigen::Vector3d normal, double distance,

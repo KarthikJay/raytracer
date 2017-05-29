@@ -28,10 +28,10 @@ T clamp(const T n, const T lower, const T upper)
 	return std::max(lower, std::min(n, upper));
 }
 
-Ray get_pixel_ray(const Scene &scene, uint x, uint y)
+Ray get_pixel_ray(const Scene &scene, uint x, uint y, uint sub_pixel = 0)
 {
-	double u = -0.5 + ((x + 0.5)) / scene.width;
-	double v = -0.5 + ((y + 0.5)) / scene.height;
+	double u = -0.5 + ((x + 0.5 + sub_pixel) / scene.width);
+	double v = -0.5 + ((y + 0.5 + sub_pixel) / scene.height);
 	double w = -1;
 	Eigen::Vector3d look = scene.view.right.cross(scene.view.up.normalized());
 	Eigen::Vector3d dis = ((scene.view.right * u)
@@ -436,8 +436,40 @@ void printrays(const Scene &scene, Ray &ray, uint depth = 0, std::string name = 
 		std::cout << std::setw(18) << "Transformed Ray: " << "{" << object_ray.origin.format(SpaceFormat) << "} -> {";
 		std::cout << object_ray.direction.format(SpaceFormat) << "}" << std::endl;
 	}
+}
 
+Eigen::Vector3d get_pixel_color(const Scene &scene, uint x, uint y, uint sample_size = 1)
+{
+	Eigen::Vector3d pixel_color = Eigen::Vector3d::Zero();
+	for(uint num_sample = 0; num_sample < sample_size; num_sample++)
+	{
+		double sub_pixel = -0.5 + ((num_sample + 0.5) / sample_size);
+		Ray pixel_ray = get_pixel_ray(scene, x, y, sub_pixel);
+		std::shared_ptr<Shape> hit_shape = get_shape(scene, pixel_ray);
+		Eigen::Vector3d local_color = blinn_phong(scene, pixel_ray);
+		Eigen::Vector3d reflection_color = get_reflection(scene, pixel_ray);
+		Eigen::Vector3d refraction_color = get_refraction(scene, pixel_ray);
+		Eigen::Vector3d sample_color;
 
+		if(hit_shape)
+		{
+			double local_contribution = (1 - hit_shape->filter) * (1 - hit_shape->reflection);
+			double reflection_contribution = (1 - hit_shape->filter) * hit_shape->reflection
+											+ hit_shape->filter;
+			double refraction_contribution = hit_shape->filter;
+			sample_color = local_contribution * local_color
+						+ reflection_contribution * reflection_color
+						+ refraction_contribution * refraction_color;
+		}
+		else
+			sample_color = local_color + reflection_color + refraction_color;
+		sample_color(0) = clamp(sample_color(0), 0.0, 1.0);
+		sample_color(1) = clamp(sample_color(1), 0.0, 1.0);
+		sample_color(2) = clamp(sample_color(2), 0.0, 1.0);
+		pixel_color += sample_color;
+	}
+	pixel_color /= sample_size;
+	return pixel_color;
 }
 
 void render(const Scene &scene, uint sample_size, bool use_alt = false)
@@ -451,48 +483,11 @@ void render(const Scene &scene, uint sample_size, bool use_alt = false)
 		for(unsigned int x = 0; x < scene.width; ++x)
 		{
 			unsigned char red = 0, green = 0, blue = 0;
-			Eigen::Vector3d sample_color = Eigen::Vector3d::Zero();
-			for(uint sub_pixel = 0; sub_pixel < sample_size; sub_pixel++)
-			{
-				double sample_offset = -0.5 + ((sub_pixel + 0.5) / sample_size);
-				double u = -0.5 + ((x + 0.5 + sample_offset) / scene.width);
-				double v = -0.5 + ((y + 0.5 + sample_offset) / scene.height);
-				double w = -1;
+			Eigen::Vector3d pixel_color = get_pixel_color(scene, x, y, sample_size);
 
-				Eigen::Vector3d look = scene.view.right.cross(scene.view.up.normalized());
-				Eigen::Vector3d dis = ((scene.view.right * u)
-									+ (scene.view.up.normalized() * v)
-									+ (w * look.normalized())).normalized();
-				Ray pixel_ray(scene.view.position, dis);
-				Eigen::Vector3d color;
-				std::shared_ptr<Shape> hit_shape = get_shape(scene, pixel_ray);
-
-				Eigen::Vector3d local_color = blinn_phong(scene, pixel_ray);
-				Eigen::Vector3d reflection_color = get_reflection(scene, pixel_ray);
-				Eigen::Vector3d refraction_color = get_refraction(scene, pixel_ray);
-
-				if(hit_shape)
-				{
-					double local_contribution = (1 - hit_shape->filter) * (1 - hit_shape->reflection);
-					double reflection_contribution = (1 - hit_shape->filter) * hit_shape->reflection
-													+ hit_shape->filter;
-					double refraction_contribution = hit_shape->filter;
-
-					color = local_contribution * local_color
-							+ reflection_contribution * reflection_color
-							+ refraction_contribution * refraction_color;
-				}
-				else
-					color = local_color + reflection_color + refraction_color;
-				color(0) = clamp(color(0), 0.0, 1.0);
-				color(1) = clamp(color(1), 0.0, 1.0);
-				color(2) = clamp(color(2), 0.0, 1.0);
-				sample_color += color;
-			}
-			sample_color /= sample_size;
-			red = (unsigned char) std::round(sample_color(0) * 255.f);
-			green = (unsigned char) std::round(sample_color(1) * 255.f);
-			blue = (unsigned char) std::round(sample_color(2) * 255.f);
+			red = (unsigned char) std::round(pixel_color(0) * 255.f);
+			green = (unsigned char) std::round(pixel_color(1) * 255.f);
+			blue = (unsigned char) std::round(pixel_color(2) * 255.f);
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 0] = red;
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 1] = green;
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 2] = blue;

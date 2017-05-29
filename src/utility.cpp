@@ -26,7 +26,8 @@ uint get_supersample(int argc, char *argv[])
 {
 	std::string ss_flag = "-ss=";
 	char *ss_num;
-	uint sample_size;
+	uint sample_size = 1;
+
 	for(int i = 3; i < argc; i++)
 	{
 		ss_num = strstr(argv[i], ss_flag.c_str());
@@ -37,7 +38,6 @@ uint get_supersample(int argc, char *argv[])
 			break;
 		}
 	}
-	sample_size = sample_size != 0 ? sample_size : 1;
 	return sample_size;
 }
 

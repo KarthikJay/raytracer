@@ -16,3 +16,18 @@ void Shape::print_material(std::ostream &out) const
 	out << "  - Index of Refraction: " << this->ior << std::endl;
 	out << "  - Filter: " << this->filter << std::endl;
 }
+
+void Shape::set_material_defaults()
+{
+	color = Eigen::Vector3d(0.0, 0.0, 0.0);
+	inverse_transform = Eigen::Matrix4d::Identity();
+	ambient = 0.0;
+	diffuse = 0.0;
+	specular = 0.0;
+	roughness = 0.5;
+	reflection = 0.0;
+	refraction = 0.0;
+	metallic = 0.0;
+	ior = 1.0;
+	filter = 0.0;
+}
