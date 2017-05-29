@@ -38,17 +38,7 @@ void Triangle::print(std::ostream &out) const
 	{
 		out << "- Point[" << i << "]: {" << this->points[i].format(SpaceFormat) << "}" << std::endl;
 	}
-	out << "- Color: {" << this->color.format(SpaceFormat) << "}" << std::endl;
-	out << "- Material:" << std::endl;
-	out << "  - Ambient: " << this->ambient << std::endl;
-	out << "  - Diffuse: " << this->diffuse << std::endl;
-	out << "  - Specular: " << this->specular << std::endl;
-	out << "  - Roughness: " << this->roughness << std::endl;
-	out << "  - Reflection: " << this->reflection << std::endl;
-	out << "  - Refraction: " << this->refraction << std::endl;
-	out << "  - Metallic: " << this->metallic << std::endl;
-	out << "  - Index of Refraction: " << this->ior << std::endl;
-	out << "  - Filter: " << this->filter << std::endl;
+	this->print_material(out);
 }
 
 Eigen::Vector3d Triangle::get_normal(Eigen::Vector3d point)
@@ -69,34 +59,6 @@ bool Triangle::edge_test(const Eigen::Vector3d &p1, const Eigen::Vector3d &p2, R
 
 	return within;
 }
-
-// return 0 if no collision
-/*
-double Triangle::collision(Ray &r)
-{
-	Eigen::Vector3d edge_0;
-	double dist = get_normal().dot(points[0]);
-	double time = 0.0;
-	// TODO(kjayakum): Put 0.001 as a const double in utility
-	bool parallel = (get_normal().dot(r.direction) < 0.001) ? true : false;
-	if(!parallel)
-	{
-		time = -(get_normal().dot(r.origin) + dist) / get_normal().dot(r.direction);
-		//std::cout << "Time: " << time << std::endl;
-		time = (time < 0.0) ? 0.0 : time;
-	}
-
-	// Inside-Outside test
-	if(time > 0.0)
-	{
-		time = (edge_test(points[1], points[0], r, time) &&
-				edge_test(points[2], points[1], r, time) &&
-				edge_test(points[0], points[2], r, time)) ? time : 0.0;
-	}
-
-	return time;
-}
-*/
 
 double Triangle::collision(Ray &r)
 {
@@ -153,7 +115,6 @@ double Triangle::collision(Ray &r)
 	time = (time > 0) ? time : 0.0;
 	time = (gamma > 0 && gamma < 1) ? time : 0.0;
 	time = (beta > 0 && beta < (1 - gamma)) ? time : 0.0;
-	//std::cout << "Time is: " << time << std::endl;
 
 	return time;
 }

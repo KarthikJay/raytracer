@@ -24,6 +24,7 @@ public:
 	Eigen::Matrix4d inverse_transform;
 
 	virtual void print_type(std::ostream &out) const = 0;
+	void print_material(std::ostream &out) const;
 	virtual double collision(Ray &r) = 0;
 	virtual Eigen::Vector3d get_normal(Eigen::Vector3d point) = 0;
 	friend std::ostream &operator<< (std::ostream &out, const Shape &s)
