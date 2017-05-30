@@ -548,6 +548,19 @@ uint get_shape_id(const Scene &scene, std::shared_ptr<Shape> search)
 	return shape_id;
 }
 
+Ray get_object_ray(const Ray &pixel_ray, std::shared_ptr<Shape> object)
+{
+	Eigen::Vector4d transform_dir;
+	Eigen::Vector4d transform_pos;
+	transform_dir << pixel_ray.direction.head<3>(), 0;
+	transform_pos << pixel_ray.origin.head<3>(), 1;
+	transform_dir = object->inverse_transform * transform_dir;
+	transform_pos = object->inverse_transform * transform_pos;
+	Eigen::Vector3d direction = transform_dir.head<3>();
+	Eigen::Vector3d position = transform_pos.head<3>();
+	return Ray(position, direction);
+}
+
 // TODO(kjayakum): Include refraction/reflection prints
 void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string name = "Primary")
 {
@@ -563,6 +576,14 @@ void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string n
 
 	if(hit_shape)
 	{
+
+		if(hit_shape->inverse_transform != Eigen::Matrix4d::Identity())
+		{
+			std::cout << std::setw(18) << "Transformed Ray: ";
+			Ray object_ray = get_object_ray(pixel_ray, hit_shape);
+			std::cout << "{" << object_ray.origin.format(SpaceFormat);
+			std::cout << "} -> {" << object_ray.direction.format(SpaceFormat) << "}" << std::endl; 
+		}
 		std::cout << std::setw(18) << "Hit Object: " << "(ID #" << get_shape_id(scene, hit_shape);
 		std::cout << " - ";
 		hit_shape->print_type(std::cout);
@@ -608,23 +629,6 @@ void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string n
 		std::cout << std::fixed << std::setprecision(4) << get_transmission_contribution(hit_shape);
 		std::cout << " Transmission";
 		std::cout << std::endl;
-		/*
-		Eigen::Vector4d transform_ray = Eigen::Vector4d::Zero();
-		Eigen::Vector4d transform_pos = Eigen::Vector4d::Zero();
-		transform_ray(0) = ray.direction(0);
-		transform_ray(1) = ray.direction(1);
-		transform_ray(2) = ray.direction(2);
-		transform_pos(0) = ray.origin(0);
-		transform_pos(1) = ray.origin(1);
-		transform_pos(2) = ray.origin(2);
-		transform_pos(3) = 1;
-		transform_ray = hit_shape->inverse_transform * transform_ray;
-		transform_pos = hit_shape->inverse_transform * transform_pos;
-		Ray object_ray(Eigen::Vector3d(transform_pos(0), transform_pos(1), transform_pos(2)),
-					Eigen::Vector3d(transform_ray(0), transform_ray(1), transform_ray(2)));
-		std::cout << std::setw(18) << "Transformed Ray: " << "{" << object_ray.origin.format(SpaceFormat) << "} -> {";
-		std::cout << object_ray.direction.format(SpaceFormat) << "}" << std::endl;
-		*/
 	}
 }
 
