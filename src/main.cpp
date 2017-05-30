@@ -173,37 +173,6 @@ Eigen::Vector3d get_ambient_color(std::shared_ptr<Shape> hit_shape)
 	return hit_shape->ambient * hit_shape->color;
 }
 
-Eigen::Vector3d get_diffuse_color(const Scene &scene, Ray &ray, std::shared_ptr<Shape> hit_shape)
-{
-	Eigen::Vector3d diffuse;
-	double t = get_intersection_time(hit_shape, ray);
-	for(uint i = 0; i < scene.lights.size(); i++)
-	{
-		Eigen::Vector3d v_vec = -ray.direction;
-		v_vec.normalized();
-		Eigen::Vector3d l_vec = scene.lights[i].position - ray.get_point(t);
-		l_vec.normalize();
-		Eigen::Vector3d offset = ray.get_point(t - 0.001);
-		Ray shadow(offset, l_vec);
-		Eigen::Vector3d n_vec = hit_shape->get_normal(ray.get_point(t));
-		n_vec.normalize();
-		bool shadowed = cast_shadow_ray(shadow, scene.shapes, scene.lights[i]);
-		if(shadowed)
-			continue;
-		Eigen::Vector3d kd = hit_shape->diffuse * hit_shape->color;
-		kd(0) *= scene.lights[i].color(0);
-		kd(1) *= scene.lights[i].color(1);
-		kd(2) *= scene.lights[i].color(2);
-		double stuff = n_vec.dot(l_vec);
-		diffuse += kd * stuff;
-	}
-	diffuse(0) = clamp(diffuse(0), 0.0, 1.0);
-	diffuse(1) = clamp(diffuse(1), 0.0, 1.0);
-	diffuse(2) = clamp(diffuse(2), 0.0, 1.0);
-
-	return diffuse;
-}
-
 // TODO(kjayakum): This might be incorrect?
 double get_fresnel_contribution(std::shared_ptr<Shape> hit_shape)
 {
@@ -225,6 +194,69 @@ double get_reflection_contribution(std::shared_ptr<Shape> hit_shape)
 double get_transmission_contribution(std::shared_ptr<Shape> hit_shape)
 {
 	return hit_shape->filter;
+}
+
+Eigen::Vector3d get_diffuse_color(const Scene &scene, Ray &ray, std::shared_ptr<Shape> hit_shape)
+{
+	Eigen::Vector3d diffuse = Eigen::Vector3d::Zero();
+	double t = get_intersection_time(hit_shape, ray);
+	for(uint i = 0; i < scene.lights.size(); i++)
+	{
+		Eigen::Vector3d v_vec = -ray.direction;
+		v_vec.normalized();
+		Eigen::Vector3d l_vec = scene.lights[i].position - ray.get_point(t);
+		l_vec.normalize();
+		Eigen::Vector3d offset = ray.get_point(t - 0.001);
+		Ray shadow(offset, l_vec);
+		Eigen::Vector3d n_vec = hit_shape->get_normal(ray.get_point(t));
+		n_vec.normalize();
+		bool shadowed = cast_shadow_ray(shadow, scene.shapes, scene.lights[i]);
+		if(shadowed)
+			continue;
+		Eigen::Vector3d kd = hit_shape->diffuse * hit_shape->color;
+		kd(0) *= scene.lights[i].color(0);
+		kd(1) *= scene.lights[i].color(1);
+		kd(2) *= scene.lights[i].color(2);
+		double stuff = n_vec.dot(l_vec);
+		diffuse += kd * stuff;
+	}
+	diffuse *= get_local_contribution(hit_shape);
+	diffuse(0) = clamp(diffuse(0), 0.0, 1.0);
+	diffuse(1) = clamp(diffuse(1), 0.0, 1.0);
+	diffuse(2) = clamp(diffuse(2), 0.0, 1.0);
+
+	return diffuse;
+}
+
+Eigen::Vector3d get_specular_color(const Scene &scene, Ray &ray, std::shared_ptr<Shape> hit_shape)
+{
+	Eigen::Vector3d specular = Eigen::Vector3d::Zero();
+	double t = get_intersection_time(hit_shape, ray);
+	for(uint i = 0; i < scene.lights.size(); i++)
+	{
+		Eigen::Vector3d v_vec = -ray.direction;
+		v_vec.normalize();
+		Eigen::Vector3d l_vec = scene.lights[i].position - ray.get_point(t);
+		l_vec.normalize();
+		Eigen::Vector3d offset = ray.get_point(t - 0.001);
+		Ray shadow(offset, l_vec);
+		Eigen::Vector3d n_vec = hit_shape->get_normal(ray.get_point(t));
+		n_vec.normalize();
+		Eigen::Vector3d h_vec = (v_vec + l_vec).normalized();
+		bool shadowed = cast_shadow_ray(shadow, scene.shapes, scene.lights[i]);
+		if(shadowed)
+			continue;
+		Eigen::Vector3d ks = hit_shape->specular * scene.lights[i].color;
+		double power = (2 / (std::pow(hit_shape->roughness, 2)) - 2);
+		double stuff2 = clamp(std::pow(n_vec.dot(h_vec), power), 0.0, 1.0);
+		specular += ks * stuff2;
+	}
+	specular *= get_local_contribution(hit_shape);
+	specular(0) = clamp(specular(0), 0.0, 1.0);
+	specular(1) = clamp(specular(1), 0.0, 1.0);
+	specular(2) = clamp(specular(2), 0.0, 1.0);
+
+	return specular;
 }
 
 Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray)
@@ -322,7 +354,7 @@ Eigen::Vector3d get_reflection(const Scene &scene, Ray &ray, int depth = 0)
 	return color;
 }
 
-Eigen::Vector3d get_refraction(const Scene &scene, Ray &ray, int depth = 0, double ior = 1.003)
+Eigen::Vector3d get_refraction(const Scene &scene, Ray &ray, int depth = 0, double ior = 1.0)
 {
 	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
 	bool collision = false;
@@ -554,6 +586,20 @@ void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string n
 		std::cout << "{" << get_diffuse_color(scene, pixel_ray, hit_shape).format(SpaceFormat) << "}";
 		std::cout << std::endl;
 
+		std::cout << std::setw(18) << "Specular: ";
+		std::cout << "{" << get_specular_color(scene, pixel_ray, hit_shape).format(SpaceFormat) << "}";
+		std::cout << std::endl;
+
+		std::cout << std::setw(18) << "Reflection: ";
+		Eigen::Vector3d reflection = get_reflection(scene, pixel_ray);
+		reflection *= get_reflection_contribution(hit_shape);
+		std::cout << "{" << reflection.format(SpaceFormat) << "}" << std::endl;
+
+		std::cout << std::setw(18) << "Refraction: ";
+		Eigen::Vector3d refraction = get_refraction(scene, pixel_ray);
+		refraction *= get_transmission_contribution(hit_shape);
+		std::cout << "{" << refraction.format(SpaceFormat) << "}" << std::endl;
+
 		std::cout << std::setw(18) << "Contributions: ";
 		std::cout << std::fixed << std::setprecision(4) << get_local_contribution(hit_shape);
 		std::cout << " Local, ";
@@ -647,7 +693,9 @@ int main(int argc, char *argv[])
 			break;
 		case Command::PRINTRAYS:
 			scene.set_scene_dimensions(options[0], options[1]);
-			//Ray temp = get_pixel_ray(scene, options[2], options[3]);
+			std::cout << "Pixel: [" << options[2] << ", " << options[3] << "] ";
+			// TODO(kjayakum): Add Pixel color final print out
+			std::cout << "Color: (" << std::endl;
 			printrays(scene, options[2], options[3]);
 			break;
 	}
