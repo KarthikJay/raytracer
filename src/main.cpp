@@ -173,6 +173,60 @@ Eigen::Vector3d get_ambient_color(std::shared_ptr<Shape> hit_shape)
 	return hit_shape->ambient * hit_shape->color;
 }
 
+Eigen::Vector3d get_diffuse_color(const Scene &scene, Ray &ray, std::shared_ptr<Shape> hit_shape)
+{
+	Eigen::Vector3d diffuse;
+	double t = get_intersection_time(hit_shape, ray);
+	for(uint i = 0; i < scene.lights.size(); i++)
+	{
+		Eigen::Vector3d v_vec = -ray.direction;
+		v_vec.normalized();
+		Eigen::Vector3d l_vec = scene.lights[i].position - ray.get_point(t);
+		l_vec.normalize();
+		Eigen::Vector3d offset = ray.get_point(t - 0.001);
+		Ray shadow(offset, l_vec);
+		Eigen::Vector3d n_vec = hit_shape->get_normal(ray.get_point(t));
+		n_vec.normalize();
+		bool shadowed = cast_shadow_ray(shadow, scene.shapes, scene.lights[i]);
+		if(shadowed)
+			continue;
+		Eigen::Vector3d kd = hit_shape->diffuse * hit_shape->color;
+		kd(0) *= scene.lights[i].color(0);
+		kd(1) *= scene.lights[i].color(1);
+		kd(2) *= scene.lights[i].color(2);
+		double stuff = n_vec.dot(l_vec);
+		diffuse += kd * stuff;
+	}
+	diffuse(0) = clamp(diffuse(0), 0.0, 1.0);
+	diffuse(1) = clamp(diffuse(1), 0.0, 1.0);
+	diffuse(2) = clamp(diffuse(2), 0.0, 1.0);
+
+	return diffuse;
+}
+
+// TODO(kjayakum): This might be incorrect?
+double get_fresnel_contribution(std::shared_ptr<Shape> hit_shape)
+{
+	double fresnel_0 = std::pow(hit_shape->ior - 1, 2) / std::pow(hit_shape->ior + 1, 2);
+	fresnel_0 = hit_shape->reflection > 0 ? fresnel_0 : 0;
+	return 0;
+}
+
+double get_local_contribution(std::shared_ptr<Shape> hit_shape)
+{
+	return (1 - hit_shape->filter) * (1 - hit_shape->reflection);
+}
+
+double get_reflection_contribution(std::shared_ptr<Shape> hit_shape)
+{
+	return ((1 - hit_shape->filter) * hit_shape->reflection) + hit_shape->filter * get_fresnel_contribution(hit_shape);
+}
+
+double get_transmission_contribution(std::shared_ptr<Shape> hit_shape)
+{
+	return hit_shape->filter;
+}
+
 Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray)
 {
 	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
@@ -428,9 +482,8 @@ Eigen::Vector3d get_pixel_color(const Scene &scene, uint x, uint y, uint sample_
 
 		if(hit_shape)
 		{
-			double local_contribution = (1 - hit_shape->filter) * (1 - hit_shape->reflection);
-			double reflection_contribution = (1 - hit_shape->filter) * hit_shape->reflection
-											+ hit_shape->filter;
+			double local_contribution = get_local_contribution(hit_shape);
+			double reflection_contribution = get_reflection_contribution(hit_shape);
 			double refraction_contribution = hit_shape->filter;
 			sample_color = local_contribution * local_color
 						+ reflection_contribution * reflection_color
@@ -496,6 +549,19 @@ void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string n
 
 		std::cout << std::setw(18) << "Ambient: ";
 		std::cout << "{" << get_ambient_color(hit_shape).format(SpaceFormat) << "}" << std::endl;
+
+		std::cout << std::setw(18) << "Diffuse: ";
+		std::cout << "{" << get_diffuse_color(scene, pixel_ray, hit_shape).format(SpaceFormat) << "}";
+		std::cout << std::endl;
+
+		std::cout << std::setw(18) << "Contributions: ";
+		std::cout << std::fixed << std::setprecision(4) << get_local_contribution(hit_shape);
+		std::cout << " Local, ";
+		std::cout << std::fixed << std::setprecision(4) << get_reflection_contribution(hit_shape);
+		std::cout << " Reflection, ";
+		std::cout << std::fixed << std::setprecision(4) << get_transmission_contribution(hit_shape);
+		std::cout << " Transmission";
+		std::cout << std::endl;
 		/*
 		Eigen::Vector4d transform_ray = Eigen::Vector4d::Zero();
 		Eigen::Vector4d transform_pos = Eigen::Vector4d::Zero();
