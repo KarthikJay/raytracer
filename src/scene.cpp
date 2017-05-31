@@ -1,6 +1,7 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
+#include <cmath>
 
 #include "scene.hpp"
 #include "sphere.hpp"
@@ -161,16 +162,26 @@ void read_rotation(std::stringstream &itr, Shape &shape)
 	z = z * M_PI / 180.0;
 	Eigen::Affine3d rotation = create_rotation_matrix(x, y, z);
 	shape.inverse_transform *= rotation.matrix();
+
+	// TODO(kjayakum): Ask professor why I need this "fix"?
+	x = std::abs(shape.inverse_transform(0,1));
+	y = std::abs(shape.inverse_transform(1,0));
+	shape.inverse_transform(1,0) = std::signbit(shape.inverse_transform(1,0)) ? -x : x;
+	shape.inverse_transform(0,1) = std::signbit(shape.inverse_transform(0,1)) ? -y : y;
 }
 
 void read_translation(std::stringstream &itr, Shape &shape)
 {
-	double x, y, z;
-	itr >> x;
-	itr >> y;
-	itr >> z;
-	Eigen::Affine3d translation(Eigen::Translation3d(Eigen::Vector3d(x, y, z)));
-	shape.inverse_transform *= translation.matrix();
+	// TODO(kjayakum): Ask professor about this scaling?
+	//Eigen::Vector3d translate;
+	// X translation
+	itr >> shape.inverse_transform(0,3);
+	// Y translation
+	itr >> shape.inverse_transform(1,3);
+	// Z translation
+	itr >> shape.inverse_transform(2,3);
+	//Eigen::Affine3d translation(Eigen::Translation3d(translate.head<3>()));
+	//shape.inverse_transform *= translation.matrix();
 }
 
 void read_shape_properties(std::string &input, Shape &shape)
@@ -181,17 +192,22 @@ void read_shape_properties(std::string &input, Shape &shape)
 	std::replace(input.begin(), input.end(), '{', ' ');
 	std::stringstream ss(input);
 	ss >> temp;
-
 	if(temp == "pigment")
 		read_pigment(ss, shape);
 	else if(temp == "finish")
 		read_finish(ss, shape);
 	else if(temp == "scale")
+	{
 		read_scale(ss, shape);
+	}
 	else if(temp == "rotate")
+	{
 		read_rotation(ss, shape);
+	}
 	else if(temp == "translate")
+	{
 		read_translation(ss, shape);
+	}
 
 	if(second_brace != std::string::npos)
 		input.erase(input.begin(), input.begin() + second_brace);
@@ -243,7 +259,7 @@ void read_spheres(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_sphere);
 	}
-	cur_sphere->inverse_transform.inverse();
+	cur_sphere->inverse_transform = cur_sphere->inverse_transform.inverse().eval();
 	scene.shapes.push_back(cur_sphere);
 }
 
@@ -267,7 +283,7 @@ void read_planes(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_plane);
 	}
-	cur_plane->inverse_transform.inverse();
+	//cur_plane->inverse_transform = cur_plane->inverse_transform.inverse();
 	scene.shapes.push_back(cur_plane);
 }
 
@@ -296,7 +312,7 @@ void read_triangles(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_triangle);
 	}
-	cur_triangle->inverse_transform.inverse();
+	//cur_triangle->inverse_transform = cur_triangle->inverse_transform.inverse();
 	scene.shapes.push_back(cur_triangle);
 }
 

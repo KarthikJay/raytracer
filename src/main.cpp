@@ -582,7 +582,7 @@ void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string n
 			std::cout << std::setw(18) << "Transformed Ray: ";
 			Ray object_ray = get_object_ray(pixel_ray, hit_shape);
 			std::cout << "{" << object_ray.origin.format(SpaceFormat);
-			std::cout << "} -> {" << object_ray.direction.format(SpaceFormat) << "}" << std::endl; 
+			std::cout << "} -> {" << object_ray.direction.format(SpaceFormat) << "}" << std::endl;
 		}
 		std::cout << std::setw(18) << "Hit Object: " << "(ID #" << get_shape_id(scene, hit_shape);
 		std::cout << " - ";
@@ -652,6 +652,8 @@ void render(const Scene &scene, uint sample_size, bool use_alt = false)
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 1] = green;
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 2] = blue;
 		}
+		// Debug to check that render is happening
+		// std::cout << "Y value is now: " << y << std::endl;
 	}
 
 	stbi_write_png(filename.c_str(), scene.width, scene.height, num_channels, data, scene.width * num_channels);
