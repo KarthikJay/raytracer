@@ -166,8 +166,8 @@ void read_rotation(std::stringstream &itr, Shape &shape)
 	// TODO(kjayakum): Ask professor why I need this "fix"?
 	x = std::abs(shape.inverse_transform(0,1));
 	y = std::abs(shape.inverse_transform(1,0));
-	shape.inverse_transform(1,0) = std::signbit(shape.inverse_transform(1,0)) ? -x : x;
-	shape.inverse_transform(0,1) = std::signbit(shape.inverse_transform(0,1)) ? -y : y;
+	shape.inverse_transform(1, 0) = std::signbit(shape.inverse_transform(1, 0)) ? -x : x;
+	shape.inverse_transform(0, 1) = std::signbit(shape.inverse_transform(0, 1)) ? -y : y;
 }
 
 void read_translation(std::stringstream &itr, Shape &shape)
@@ -175,11 +175,11 @@ void read_translation(std::stringstream &itr, Shape &shape)
 	// TODO(kjayakum): Ask professor about this scaling?
 	//Eigen::Vector3d translate;
 	// X translation
-	itr >> shape.inverse_transform(0,3);
+	itr >> shape.inverse_transform(0, 3);
 	// Y translation
-	itr >> shape.inverse_transform(1,3);
+	itr >> shape.inverse_transform(1, 3);
 	// Z translation
-	itr >> shape.inverse_transform(2,3);
+	itr >> shape.inverse_transform(2, 3);
 	//Eigen::Affine3d translation(Eigen::Translation3d(translate.head<3>()));
 	//shape.inverse_transform *= translation.matrix();
 }
@@ -283,7 +283,7 @@ void read_planes(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_plane);
 	}
-	//cur_plane->inverse_transform = cur_plane->inverse_transform.inverse();
+	cur_plane->inverse_transform = cur_plane->inverse_transform.inverse().eval();
 	scene.shapes.push_back(cur_plane);
 }
 
@@ -312,7 +312,7 @@ void read_triangles(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_triangle);
 	}
-	//cur_triangle->inverse_transform = cur_triangle->inverse_transform.inverse();
+	cur_triangle->inverse_transform = cur_triangle->inverse_transform.inverse().eval();
 	scene.shapes.push_back(cur_triangle);
 }
 
