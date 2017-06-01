@@ -37,19 +37,7 @@ void Sphere::print(std::ostream &out) const
 // TODO(kjayakum): Fix the transform stuff
 double Sphere::collision(Ray &r)
 {
-	Eigen::Vector4d transform_ray = Eigen::Vector4d::Zero();
-	Eigen::Vector4d transform_pos = Eigen::Vector4d::Zero();
-	transform_ray(0) = r.direction(0);
-	transform_ray(1) = r.direction(1);
-	transform_ray(2) = r.direction(2);
-	transform_pos(0) = r.origin(0);
-	transform_pos(1) = r.origin(1);
-	transform_pos(2) = r.origin(2);
-	transform_pos(3) = 1;
-	transform_ray = this->inverse_transform * transform_ray;
-	transform_pos = this->inverse_transform * transform_pos;
-	Ray object_ray(Eigen::Vector3d(transform_pos(0), transform_pos(1), transform_pos(2)),
-					Eigen::Vector3d(transform_ray(0), transform_ray(1), transform_ray(2)));
+	Ray object_ray = r.transform(inverse_transform);
 	double t1, t2;
 	double T = 0.0;
 	double A = object_ray.direction.dot(object_ray.direction);
@@ -77,6 +65,5 @@ Eigen::Vector3d Sphere::get_normal(Eigen::Vector3d point)
 	Eigen::Vector3d normal = (point - center).normalized();
 	normal << (inverse_transform.transpose()
 			* (Eigen::Vector4d() << normal.head<3>(), 0).finished()).head<3>();
-	normal = normal.normalized();
 	return normal;
 }

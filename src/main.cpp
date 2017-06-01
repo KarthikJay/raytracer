@@ -548,19 +548,6 @@ uint get_shape_id(const Scene &scene, std::shared_ptr<Shape> search)
 	return shape_id;
 }
 
-Ray get_object_ray(const Ray &pixel_ray, std::shared_ptr<Shape> object)
-{
-	Eigen::Vector4d transform_dir;
-	Eigen::Vector4d transform_pos;
-	transform_dir << pixel_ray.direction.head<3>(), 0;
-	transform_pos << pixel_ray.origin.head<3>(), 1;
-	transform_dir = object->inverse_transform * transform_dir;
-	transform_pos = object->inverse_transform * transform_pos;
-	Eigen::Vector3d direction = transform_dir.head<3>();
-	Eigen::Vector3d position = transform_pos.head<3>();
-	return Ray(position, direction);
-}
-
 // TODO(kjayakum): Include refraction/reflection prints
 void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string name = "Primary")
 {
@@ -576,11 +563,10 @@ void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string n
 
 	if(hit_shape)
 	{
-
 		if(hit_shape->inverse_transform != Eigen::Matrix4d::Identity())
 		{
 			std::cout << std::setw(18) << "Transformed Ray: ";
-			Ray object_ray = get_object_ray(pixel_ray, hit_shape);
+			Ray object_ray = pixel_ray.transform(hit_shape->inverse_transform);
 			std::cout << "{" << object_ray.origin.format(SpaceFormat);
 			std::cout << "} -> {" << object_ray.direction.format(SpaceFormat) << "}" << std::endl;
 		}
