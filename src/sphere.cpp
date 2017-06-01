@@ -34,7 +34,6 @@ void Sphere::print(std::ostream &out) const
 	this->print_material(out);
 }
 
-// TODO(kjayakum): Fix the transform stuff
 double Sphere::collision(Ray &r)
 {
 	Ray object_ray = r.transform(inverse_transform);
@@ -65,5 +64,5 @@ Eigen::Vector3d Sphere::get_normal(Eigen::Vector3d point)
 	Eigen::Vector3d normal = (point - center).normalized();
 	normal << (inverse_transform.transpose()
 			* (Eigen::Vector4d() << normal.head<3>(), 0).finished()).head<3>();
-	return normal;
+	return normal.normalized();
 }

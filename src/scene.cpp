@@ -7,6 +7,7 @@
 #include "sphere.hpp"
 #include "plane.hpp"
 #include "triangle.hpp"
+#include "box.hpp"
 
 Scene::Scene() {}
 
@@ -296,7 +297,6 @@ void read_triangles(std::istream &in, std::string line, Scene &scene)
 
 	// Consume "triangle"
 	ss >> temp;
-
 	for(uint i = 0; i < 3; i++)
 	{
 		getline(in, property_line);
@@ -316,6 +316,32 @@ void read_triangles(std::istream &in, std::string line, Scene &scene)
 	scene.shapes.push_back(cur_triangle);
 }
 
+void read_boxes(std::istream &in, std::string line, Scene &scene)
+{
+	std::shared_ptr<Box> cur_box = std::make_shared<Box>();
+	std::string temp;
+	std::string property_line;
+	std::stringstream ss(line);
+
+	// Consume "box"
+	ss >> temp;
+
+	ss >> cur_box->min(0);
+	ss >> cur_box->min(1);
+	ss >> cur_box->min(2);
+	ss >> cur_box->max(0);
+	ss >> cur_box->max(1);
+	ss >> cur_box->max(2);
+	while(property_line != "}")
+	{
+		getline(in, property_line);
+		replace_markers(property_line, false);
+		read_shape_properties(property_line, *cur_box);
+	}
+	cur_box->inverse_transform = cur_box->inverse_transform.inverse().eval();
+	scene.shapes.push_back(cur_box);
+}
+
 std::istream &operator>> (std::istream &in, Scene &scene)
 {
 	std::string line;
@@ -333,6 +359,8 @@ std::istream &operator>> (std::istream &in, Scene &scene)
 			read_planes(in, line, scene);
 		else if(line.find("triangle") != std::string::npos)
 			read_triangles(in, line, scene);
+		else if(line.find("box") != std::string::npos)
+			read_boxes(in, line, scene);
 	}
 	return in;
 }
