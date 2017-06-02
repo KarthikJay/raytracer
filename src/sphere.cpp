@@ -61,7 +61,10 @@ void Sphere::print_type(std::ostream &out) const
 
 Eigen::Vector3d Sphere::get_normal(Eigen::Vector3d point)
 {
-	Eigen::Vector3d normal = (point - center).normalized();
+	Eigen::Vector3d object_point;
+	object_point << (inverse_transform
+					* (Eigen::Vector4d() << point.head<3>(), 1).finished()).head<3>();
+	Eigen::Vector3d normal = (object_point - center).normalized();
 	normal << (inverse_transform.transpose()
 			* (Eigen::Vector4d() << normal.head<3>(), 0).finished()).head<3>();
 	return normal.normalized();

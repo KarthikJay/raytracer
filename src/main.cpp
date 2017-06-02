@@ -375,7 +375,7 @@ Eigen::Vector3d get_refraction(const Scene &scene, Ray &ray, int depth = 0, doub
 	if(collision)
 	{
 		color = 0.5 * blinn_phong(scene, ray);
-		if((scene.shapes[select]->refraction > 0 || scene.shapes[select]->filter> 0) && depth <= 6)
+		if((scene.shapes[select]->refraction > 0 || scene.shapes[select]->filter > 0) && depth <= 6)
 		{
 			double final_ior;
 			double ior2 = scene.shapes[select]->ior;

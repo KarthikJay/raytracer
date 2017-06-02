@@ -52,37 +52,40 @@ void Box::print_type(std::ostream &out) const
 	out << "Box";
 }
 
-bool epsilon_compare(double a, double b, double const epsilon = std::numeric_limits<double>::epsilon())
+bool epsilon_compare(double a, double b, double const epsilon = 0.0001)
 {
 	return std::abs(a - b) < epsilon;
 }
 
-// TODO(kjayakum): Fix normals!
+// TODO(kjayakum): Use asserts to guard against divide by zeroes!
 Eigen::Vector3d Box::get_normal(Eigen::Vector3d point)
 {
 	Eigen::Vector3d normal = Eigen::Vector3d::Zero();
+	Eigen::Vector3d object_point = point;
+	object_point << (inverse_transform
+					* (Eigen::Vector4d() << point.head<3>(), 1).finished()).head<3>();
 
-	if(epsilon_compare(point(0), min(0)))
+	if(epsilon_compare(object_point(0), min(0)))
 	{
 		normal << -1, 0, 0;
 	}
-	else if(epsilon_compare(point(0), max(0)))
+	else if(epsilon_compare(object_point(0), max(0)))
 	{
 		normal << 1, 0, 0;
 	}
-	else if(epsilon_compare(point(1), min(1)))
+	else if(epsilon_compare(object_point(1), min(1)))
 	{
 		normal << 0, -1, 0;
 	}
-	else if(epsilon_compare(point(2), max(2)))
+	else if(epsilon_compare(object_point(1), max(1)))
 	{
 		normal << 0, 1, 0;
 	}
-	else if(epsilon_compare(point(2), min(2)))
+	else if(epsilon_compare(object_point(2), min(2)))
 	{
 		normal << 0, 0, -1;
 	}
-	else if(epsilon_compare(point(2), max(2)))
+	else if(epsilon_compare(object_point(2), max(2)))
 	{
 		normal << 0, 0, 1;
 	}

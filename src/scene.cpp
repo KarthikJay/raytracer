@@ -83,6 +83,9 @@ void read_camera(std::istream &in, Scene &scene, std::string line)
 			ss >> scene.view.look_at(1);
 			ss >> scene.view.look_at(2);
 		}
+		ss >> temp;
+		if(temp == "}")
+			line = "}";
 	}
 }
 
