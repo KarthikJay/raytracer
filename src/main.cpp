@@ -22,6 +22,9 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+const uint kMaxdepth = 6;
+const double epsilon = 0.0001;
+
 template <typename T>
 T clamp(const T n, const T lower, const T upper)
 {
@@ -304,36 +307,24 @@ Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, std::shared_ptr<Shape>
 	return color;
 }
 
-// TODO(kjayakum): Setup alternative shader besides blinn_phong
 Eigen::Vector3d get_reflection(const Scene &scene, Ray &ray, int depth = 0)
 {
+	std::shared_ptr<Shape> hit_shape = get_shape(scene, ray);
+	double time = get_intersection_time(hit_shape, ray);
 	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
-	bool collision = false;
-	int select = 0;
-	double t = std::numeric_limits<double>::max();
+	Eigen::Vector3d n_vec;
+	Eigen::Vector3d r_vec;
+	Ray reflection;
 
-	for(uint i = 0; i < scene.shapes.size(); i++)
+	if(hit_shape)
 	{
-		double temp = scene.shapes[i]->collision(ray);
-		if(temp > 0 && temp < t)
+		color = get_local_contribution(hit_shape) * blinn_phong(scene, ray, hit_shape);
+		if(hit_shape->reflection > 0 && depth <= 6)
 		{
-			collision = true;
-			select = i;
-			t = temp;
-		}
-	}
-
-	if(collision)
-	{
-		color = 0.5 * blinn_phong(scene, ray, scene.shapes[select]);
-		if(scene.shapes[select]->reflection > 0 && depth <= 6)
-		{
-			Eigen::Vector3d n_vec = scene.shapes[select]->get_normal(ray.get_point(t));
-			n_vec.normalize();
-			Eigen::Vector3d r_vec = ray.direction - (2 * (ray.direction.dot(n_vec)) * n_vec);
-			r_vec.normalize();
-			Ray reflection = Ray(ray.get_point(t - 0.001), r_vec);
-			color += scene.shapes[select]->reflection * get_reflection(scene, reflection, depth + 1);
+			n_vec = hit_shape->get_normal(ray.get_point(time)).normalized();
+			r_vec = (ray.direction - (2 * (ray.direction.dot(n_vec)) * n_vec)).normalized();
+			reflection = Ray(ray.get_point(time - 0.001), r_vec);
+			color += hit_shape->reflection * get_reflection(scene, reflection, depth + 1);
 		}
 	}
 
