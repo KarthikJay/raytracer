@@ -259,55 +259,44 @@ Eigen::Vector3d get_specular_color(const Scene &scene, Ray &ray, std::shared_ptr
 	return specular;
 }
 
-Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray)
+Eigen::Vector3d blinn_phong(const Scene &scene, Ray &ray, std::shared_ptr<Shape> hit_shape)
 {
+	double time = get_intersection_time(hit_shape, ray);
+	double power;
+	double coeff;
 	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
-	bool collision = false;
-	int select = 0;
-	double t = std::numeric_limits<double>::max();
+	Eigen::Vector3d offset = ray.get_point(time - 0.001);
+	Eigen::Vector3d v_vec = (-ray.direction).normalized();
+	Eigen::Vector3d l_vec;
+	Eigen::Vector3d n_vec;
+	Eigen::Vector3d h_vec;
+	Eigen::Array3d kd;
+	Eigen::Vector3d ks;
+	Ray shadow;
 
-	for(uint i = 0; i < scene.shapes.size(); i++)
+	if(hit_shape)
 	{
-		double temp = scene.shapes[i]->collision(ray);
-		if(temp > 0 && temp < t)
+		// Ambient Component
+		color += hit_shape->ambient * hit_shape->color;
+		n_vec = hit_shape->get_normal(ray.get_point(time)).normalized();
+		for(Light cur_light : scene.lights)
 		{
-			collision = true;
-			select = i;
-			t = temp;
+			l_vec = (cur_light.position - ray.get_point(time)).normalized();
+			shadow = Ray(offset, l_vec);
+			h_vec = (v_vec + l_vec).normalized();
+			if(cast_shadow_ray(shadow, scene.shapes, cur_light))
+				continue;
+			kd = hit_shape->diffuse * hit_shape->color;
+			kd *= (Eigen::Array3d() << cur_light.color.head<3>()).finished();
+			// Diffuse Component
+			color += (Eigen::Vector3d() << (kd * n_vec.dot(l_vec)).head<3>()).finished();
+			ks = hit_shape->specular * cur_light.color;
+			power = (2 / (std::pow(hit_shape->roughness, 2)) - 2);
+			coeff = clamp(std::pow(n_vec.dot(h_vec), power), 0.0, 1.0);
+			// Specular Component
+			color += ks * coeff;
 		}
 	}
-
-	if(collision)
-	{
-		color += scene.shapes[select]->ambient * scene.shapes[select]->color;
-		for(uint i = 0; i < scene.lights.size(); i++)
-		{
-			Eigen::Vector3d v_vec = -ray.direction;
-			v_vec.normalize();
-			Eigen::Vector3d l_vec = scene.lights[i].position - ray.get_point(t);
-			l_vec.normalize();
-			Eigen::Vector3d offset = ray.get_point(t - 0.001);
-			Ray shadow(offset, l_vec);
-			Eigen::Vector3d n_vec = scene.shapes[select]->get_normal(ray.get_point(t));
-			n_vec.normalize();
-			Eigen::Vector3d h_vec = (v_vec + l_vec).normalized();
-			bool shadowed = cast_shadow_ray(shadow, scene.shapes, scene.lights[i]);
-			if(!shadowed)
-			{
-				Eigen::Vector3d kd = scene.shapes[select]->diffuse * scene.shapes[select]->color;
-				kd(0) *= scene.lights[i].color(0);
-				kd(1) *= scene.lights[i].color(1);
-				kd(2) *= scene.lights[i].color(2);
-				double stuff = n_vec.dot(l_vec);
-				color += kd * stuff;
-				Eigen::Vector3d ks = scene.shapes[select]->specular * scene.lights[i].color;
-				double power = (2 / (std::pow(scene.shapes[select]->roughness, 2)) - 2);
-				double stuff2 = clamp(std::pow(n_vec.dot(h_vec), power), 0.0, 1.0);
-				color += ks * stuff2;
-			}
-		}
-	}
-
 	color(0) = clamp(color(0), 0.0, 1.0);
 	color(1) = clamp(color(1), 0.0, 1.0);
 	color(2) = clamp(color(2), 0.0, 1.0);
@@ -336,7 +325,7 @@ Eigen::Vector3d get_reflection(const Scene &scene, Ray &ray, int depth = 0)
 
 	if(collision)
 	{
-		color = 0.5 * blinn_phong(scene, ray);
+		color = 0.5 * blinn_phong(scene, ray, scene.shapes[select]);
 		if(scene.shapes[select]->reflection > 0 && depth <= 6)
 		{
 			Eigen::Vector3d n_vec = scene.shapes[select]->get_normal(ray.get_point(t));
@@ -374,7 +363,7 @@ Eigen::Vector3d get_refraction(const Scene &scene, Ray &ray, int depth = 0, doub
 
 	if(collision)
 	{
-		color = 0.5 * blinn_phong(scene, ray);
+		color = 0.5 * blinn_phong(scene, ray, scene.shapes[select]);
 		if((scene.shapes[select]->refraction > 0 || scene.shapes[select]->filter > 0) && depth <= 6)
 		{
 			double final_ior;
@@ -507,7 +496,7 @@ Eigen::Vector3d get_pixel_color(const Scene &scene, uint x, uint y, uint sample_
 		double sub_pixel = -0.5 + ((num_sample + 0.5) / sample_size);
 		Ray pixel_ray = get_pixel_ray(scene, x, y, sub_pixel);
 		std::shared_ptr<Shape> hit_shape = get_shape(scene, pixel_ray);
-		Eigen::Vector3d local_color = blinn_phong(scene, pixel_ray);
+		Eigen::Vector3d local_color = blinn_phong(scene, pixel_ray, hit_shape);
 		Eigen::Vector3d reflection_color = get_reflection(scene, pixel_ray);
 		Eigen::Vector3d refraction_color = get_refraction(scene, pixel_ray);
 		Eigen::Vector3d sample_color;
