@@ -14,10 +14,12 @@ void parse_optional(int argc, char *argv[], std::vector<unsigned int> &optional)
 	unsigned int temp;
 	for (int i = 3; i < argc; i++)
 	{
-		// TODO(kjayakum): Wrap the ss >> temp in an if guard for string with '-' in it
 		std::stringstream ss(argv[i]);
 		ss >> temp;
-		optional.push_back(temp);
+		if((ss.rdstate() & std::stringstream::failbit) == 0)
+		{
+			optional.push_back(temp);
+		}
 	}
 }
 

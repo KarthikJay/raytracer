@@ -318,7 +318,7 @@ Eigen::Vector3d get_reflection(const Scene &scene, Ray &ray, int depth = 0)
 
 	if(hit_shape)
 	{
-		color = get_local_contribution(hit_shape) * blinn_phong(scene, ray, hit_shape);
+		color += get_local_contribution(hit_shape) * blinn_phong(scene, ray, hit_shape);
 		if(hit_shape->reflection > 0 && depth <= 6)
 		{
 			n_vec = hit_shape->get_normal(ray.get_point(time)).normalized();
@@ -334,33 +334,52 @@ Eigen::Vector3d get_reflection(const Scene &scene, Ray &ray, int depth = 0)
 	return color;
 }
 
+Ray refract_ray(Ray &pixel_ray, const std::shared_ptr<Shape> hit_shape, double *ior)
+{
+	double time = get_intersection_time(hit_shape, pixel_ray);
+	double final_ior;
+	double ior2 = hit_shape->ior;
+	Eigen::Vector3d n = hit_shape->get_normal(pixel_ray.get_point(time));
+	Eigen::Vector3d d = pixel_ray.direction;
+	Eigen::Vector3d t_vec;
+	// Check if ray is outside an object
+	if(d.dot(n) < 0)
+	{
+		final_ior = *ior / ior2;
+	}
+	else
+	{
+		n = -n;
+		final_ior = ior2 / *ior;
+	}
+	double discriminant = 1 - (std::pow((final_ior), 2) * (1 - std::pow(d.dot(n), 2)));
+	t_vec = (final_ior) * (d - (d.dot(n) * n));
+	t_vec = (t_vec - (n * std::sqrt(discriminant))).normalized();
+	*ior = hit_shape->ior;
+	
+	return Ray(pixel_ray.get_point(time + 0.001), t_vec);
+}
+
 Eigen::Vector3d get_refraction(const Scene &scene, Ray &ray, int depth = 0, double ior = 1.0)
 {
+	std::shared_ptr<Shape> hit_shape = get_shape(scene, ray);
+	double time = get_intersection_time(hit_shape, ray);
 	Eigen::Vector3d color = Eigen::Vector3d(0, 0, 0);
-	bool collision = false;
-	int select = 0;
-	double t = std::numeric_limits<double>::max();
+	Eigen::Vector3d n, d;
+	Eigen::Vector3d n_vec;
+	Eigen::Vector3d r_vec;
+	Eigen::Vector3d t_vec;
+	Ray refraction;
 
-	for(uint i = 0; i < scene.shapes.size(); i++)
+	if(hit_shape)
 	{
-		double temp = scene.shapes[i]->collision(ray);
-		if(temp > 0 && temp < t)
-		{
-			collision = true;
-			select = i;
-			t = temp;
-		}
-	}
-
-	if(collision)
-	{
-		color = 0.5 * blinn_phong(scene, ray, scene.shapes[select]);
-		if((scene.shapes[select]->refraction > 0 || scene.shapes[select]->filter > 0) && depth <= 6)
+		color += get_local_contribution(hit_shape) * blinn_phong(scene, ray, hit_shape);
+		if((hit_shape->refraction > 0 || hit_shape->filter > 0) && depth <= 6)
 		{
 			double final_ior;
-			double ior2 = scene.shapes[select]->ior;
-			Eigen::Vector3d n = scene.shapes[select]->get_normal(ray.get_point(t));
-			Eigen::Vector3d d = ray.direction;
+			double ior2 = hit_shape->ior;
+			n = hit_shape->get_normal(ray.get_point(time));
+			d = ray.direction;
 			// Check if ray is outside an object
 			if(d.dot(n) < 0)
 			{
@@ -372,14 +391,13 @@ Eigen::Vector3d get_refraction(const Scene &scene, Ray &ray, int depth = 0, doub
 				final_ior = ior2 / ior;
 			}
 			double discriminant = 1 - (std::pow((final_ior), 2) * (1 - std::pow(d.dot(n), 2)));
-			Eigen::Vector3d t_vec = (final_ior) * (d - (d.dot(n) * n));
-			t_vec = t_vec - (n * std::sqrt(discriminant));
-			t_vec.normalize();
-			Ray refract(ray.get_point(t + 0.001), t_vec);
-			if(scene.shapes[select]->refraction > 0)
-				color += scene.shapes[select]->refraction * get_refraction(scene, refract, depth + 1);
+			t_vec = (final_ior) * (d - (d.dot(n) * n));
+			t_vec = (t_vec - (n * std::sqrt(discriminant))).normalized();
+			refraction = Ray(ray.get_point(time + 0.001), t_vec);
+			if(hit_shape->refraction > 0)
+				color += hit_shape->refraction * get_refraction(scene, refraction, depth + 1, ior2);
 			else
-				color += scene.shapes[select]->filter * get_refraction(scene, refract, depth + 1);
+				color += hit_shape->filter * get_refraction(scene, refraction, depth + 1, ior2);
 		}
 	}
 
@@ -479,6 +497,31 @@ void pixelcolor(const Scene &scene, uint x, uint y, bool use_alt = false)
 	}
 }
 
+Eigen::Vector3d get_pixel_color(const Scene &scene, Ray &pixel_ray)
+{
+	Eigen::Vector3d pixel_color = Eigen::Vector3d::Zero();
+	std::shared_ptr<Shape> hit_shape = get_shape(scene, pixel_ray);
+	Eigen::Vector3d local_color = blinn_phong(scene, pixel_ray, hit_shape);
+	Eigen::Vector3d reflection_color = get_reflection(scene, pixel_ray);
+	Eigen::Vector3d refraction_color = get_refraction(scene, pixel_ray);
+
+	if(hit_shape)
+	{
+		double local_contribution = get_local_contribution(hit_shape);
+		double reflection_contribution = get_reflection_contribution(hit_shape);
+		double refraction_contribution = hit_shape->filter;
+		pixel_color = local_contribution * local_color
+					+ reflection_contribution * reflection_color
+					+ refraction_contribution * refraction_color;
+	}
+	else
+		pixel_color = local_color + reflection_color + refraction_color;
+	pixel_color(0) = clamp(pixel_color(0), 0.0, 1.0);
+	pixel_color(1) = clamp(pixel_color(1), 0.0, 1.0);
+	pixel_color(2) = clamp(pixel_color(2), 0.0, 1.0);
+	return pixel_color;
+}
+
 Eigen::Vector3d get_pixel_color(const Scene &scene, uint x, uint y, uint sample_size = 1)
 {
 	Eigen::Vector3d pixel_color = Eigen::Vector3d::Zero();
@@ -529,9 +572,8 @@ uint get_shape_id(const Scene &scene, std::shared_ptr<Shape> search)
 }
 
 // TODO(kjayakum): Include refraction/reflection prints
-void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string name = "Primary")
+void printrays(const Scene &scene, Ray &pixel_ray, uint depth = 0, std::string name = "Primary", double ior = 1.0)
 {
-	Ray pixel_ray = get_pixel_ray(scene, x, y);
 	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
 	std::shared_ptr<Shape> hit_shape = get_shape(scene, pixel_ray);
 	double intersection_time = get_intersection_time(hit_shape, pixel_ray);
@@ -564,7 +606,7 @@ void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string n
 		std::cout << "}" << std::endl;
 		
 		std::cout << std::setw(18) << "Final Color: ";
-		std::cout << "{" << get_pixel_color(scene, x , y).format(SpaceFormat) << "}" << std::endl;
+		std::cout << "{" << get_pixel_color(scene, pixel_ray).format(SpaceFormat) << "}" << std::endl;
 
 		std::cout << std::setw(18) << "Ambient: ";
 		std::cout << "{" << get_ambient_color(hit_shape).format(SpaceFormat) << "}" << std::endl;
@@ -595,6 +637,31 @@ void printrays(const Scene &scene, uint x, uint y, uint depth = 0, std::string n
 		std::cout << std::fixed << std::setprecision(4) << get_transmission_contribution(hit_shape);
 		std::cout << " Transmission";
 		std::cout << std::endl;
+	}
+	if(name == "Refraction")
+	{
+		std::cout << std::setw(18) << "Extra Info: ";
+		Eigen::Vector3d n = hit_shape->get_normal(pixel_ray.get_point(intersection_time));
+		Eigen::Vector3d d = pixel_ray.direction;
+		if(d.dot(n) < 0)
+			std::cout << "into-object";
+		else
+			std::cout << "into-air";
+		std::cout << std::endl;
+	}
+	// Reflection print
+	if(hit_shape->reflection > 0 && depth <= 6)
+	{
+		Eigen::Vector3d n_vec = hit_shape->get_normal(pixel_ray.get_point(intersection_time)).normalized();
+		Eigen::Vector3d r_vec = (pixel_ray.direction - (2 * (pixel_ray.direction.dot(n_vec)) * n_vec)).normalized();
+		Ray reflection = Ray(pixel_ray.get_point(intersection_time - 0.001), r_vec);
+		printrays(scene, reflection, depth + 1, "Reflection");
+	}
+	// Refraction print
+	else if((hit_shape->refraction > 0 || hit_shape->filter) > 0 && depth <= 6)
+	{
+		Ray refraction = refract_ray(pixel_ray, hit_shape, &ior);
+		printrays(scene, refraction, depth + 1, "Refraction", ior);
 	}
 }
 
@@ -630,6 +697,7 @@ int main(int argc, char *argv[])
 {
 	Scene scene;
 	Camera view;
+	Ray pixel_ray;
 	std::ifstream input_file;
 	std::vector<unsigned int> options;
 
@@ -668,7 +736,8 @@ int main(int argc, char *argv[])
 			std::cout << "Pixel: [" << options[2] << ", " << options[3] << "] ";
 			// TODO(kjayakum): Add Pixel color final print out
 			std::cout << "Color: (" << std::endl;
-			printrays(scene, options[2], options[3]);
+			pixel_ray = get_pixel_ray(scene, options[2], options[3]);
+			printrays(scene, pixel_ray);
 			break;
 	}
 	return 0;
