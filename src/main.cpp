@@ -700,6 +700,7 @@ int main(int argc, char *argv[])
 	Ray pixel_ray;
 	std::ifstream input_file;
 	std::vector<unsigned int> options;
+	std::array<bool, 3> flags;
 
 	input_file.open(argv[2]);
 	input_file >> scene;
@@ -732,6 +733,7 @@ int main(int argc, char *argv[])
 			scene.set_scene_dimensions(options[0], options[1]);
 			break;
 		case Command::PRINTRAYS:
+			get_flags(argc, argv, flags);
 			scene.set_scene_dimensions(options[0], options[1]);
 			std::cout << "Pixel: [" << options[2] << ", " << options[3] << "] ";
 			// TODO(kjayakum): Add Pixel color final print out

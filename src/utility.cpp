@@ -1,4 +1,5 @@
 #include <vector>
+#include <array>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -40,6 +41,28 @@ uint get_supersample(int argc, char *argv[])
 		}
 	}
 	return sample_size;
+}
+
+void get_flags(int argc, char *argv[], std::array<bool, 3> &flags)
+{
+	std::string temp;
+	for(int i = 3; i < argc; i++)
+	{
+		std::stringstream ss(argv[i]);
+		ss >> temp;
+		if(temp == "-fresnel")
+		{
+			flags[(int)Flags::FRESNEL] = true;
+		}
+		else if(temp == "-sds")
+		{
+			flags[(int)Flags::SPACIAL_DATA_STRUCTURES] = true;
+		}
+		else if(temp == "-altbrdf")
+		{
+			flags[(int)Flags::ALTERNATIVE_BRDF] = true;
+		}
+	}
 }
 
 Command is_valid_command(int argc, char *argv[])

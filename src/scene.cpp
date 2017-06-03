@@ -85,7 +85,9 @@ void read_camera(std::istream &in, Scene &scene, std::string line)
 		}
 		ss >> temp;
 		if(temp == "}")
+		{
 			line = "}";
+		}
 	}
 }
 
