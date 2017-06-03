@@ -21,9 +21,8 @@ enum class Flags : int
 	SPACIAL_DATA_STRUCTURES
 };
 
-// Utility functions
 void parse_optional(int argc, char *argv[], std::vector<unsigned int> &optional);
-Command is_valid_command(int argc, char *argv[]);
+Command is_valid_command(int argc, char *argv[], std::vector<uint> &options);
 uint get_supersample(int argc, char *argv[]);
 void get_flags(int argc, char *argv[], std::array<bool, 3> &flags);
 

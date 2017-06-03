@@ -65,7 +65,7 @@ void get_flags(int argc, char *argv[], std::array<bool, 3> &flags)
 	}
 }
 
-Command is_valid_command(int argc, char *argv[])
+Command is_valid_command(int argc, char *argv[], std::vector<uint> &options)
 {
 	std::string cur;
 	std::ifstream test_file;
@@ -78,24 +78,49 @@ Command is_valid_command(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	// TODO(kjayakum): Add further checks to make sure optional arguments are provided for each command
 	cur = std::string(argv[1]);
 	if(cur == "render")
 		type = Command::RENDER;
 	else if(cur == "sceneinfo")
 		type = Command::SCENEINFO;
 	else if(cur == "pixelray")
+	{
 		type = Command::PIXELRAY;
+	}
 	else if(cur == "firsthit")
+	{
 		type = Command::FIRSTHIT;
+	}
 	else if(cur == "pixelcolor")
+	{
 		type = Command::PIXELCOLOR;
+	}
 	else if(cur == "printrays")
+	{
 		type = Command::PRINTRAYS;
+	}
 	else
 	{
 		std::cerr << "Invalid command entered" << std::endl;
 		exit(EXIT_FAILURE);
+	}
+
+	switch(type)
+	{
+		case Command::FIRSTHIT:
+		case Command::PIXELRAY:
+		case Command::PRINTRAYS:
+		case Command::PIXELTRACE:
+		case Command::PIXELCOLOR:
+			if(options.size() < 4)
+			{
+				std::cerr << "Not enough arguments passed for specified command!" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			break;
+		case Command::RENDER:
+		case Command::SCENEINFO:
+			break;
 	}
 
 	cur = std::string(argv[2]);

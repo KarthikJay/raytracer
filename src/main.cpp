@@ -699,14 +699,15 @@ int main(int argc, char *argv[])
 	Camera view;
 	Ray pixel_ray;
 	std::ifstream input_file;
-	std::vector<unsigned int> options;
+	std::vector<uint> options;
 	std::array<bool, 3> flags;
 
 	input_file.open(argv[2]);
 	input_file >> scene;
 	input_file.close();
-	Command type = is_valid_command(argc, argv);
 	parse_optional(argc, argv, options);
+	get_flags(argc, argv, flags);
+	Command type = is_valid_command(argc, argv, options);
 
 	switch(type)
 	{
@@ -733,7 +734,6 @@ int main(int argc, char *argv[])
 			scene.set_scene_dimensions(options[0], options[1]);
 			break;
 		case Command::PRINTRAYS:
-			get_flags(argc, argv, flags);
 			scene.set_scene_dimensions(options[0], options[1]);
 			std::cout << "Pixel: [" << options[2] << ", " << options[3] << "] ";
 			// TODO(kjayakum): Add Pixel color final print out
