@@ -50,3 +50,12 @@ Eigen::Vector3d Plane::get_normal(Eigen::Vector3d point)
 {
 	return normal;
 }
+
+Eigen::Vector3d Plane::get_world_max_coord()
+{
+	return Eigen::Vector3d::Zero();
+}
+Eigen::Vector3d Plane::get_world_min_coord()
+{
+	return Eigen::Vector3d::Zero();
+}

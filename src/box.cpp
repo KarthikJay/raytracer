@@ -94,3 +94,17 @@ Eigen::Vector3d Box::get_normal(Eigen::Vector3d point)
 
 	return normal.normalized();
 }
+
+Eigen::Vector3d Box::get_world_max_coord()
+{
+	Eigen::Vector3d world_max = max;
+	world_max << (transform * (Eigen::Vector4d() << world_max.head<3>(), 1).finished()).head<3>();
+	return world_max;
+}
+
+Eigen::Vector3d Box::get_world_min_coord()
+{
+	Eigen::Vector3d world_min = min;
+	world_min << (transform * (Eigen::Vector4d() << world_min.head<3>(), 1).finished()).head<3>();
+	return world_min;
+}

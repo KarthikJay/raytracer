@@ -49,6 +49,32 @@ bool Triangle::edge_test(const Eigen::Vector3d &p1, const Eigen::Vector3d &p2, R
 	return within;
 }
 
+Eigen::Vector3d Triangle::get_world_max_coord()
+{
+	Eigen::Vector3d world_max = Eigen::Vector3d::Zero();
+	for(Eigen::Vector3d itr : points)
+	{
+		world_max(0) = std::max(world_max(0), itr(0));
+		world_max(1) = std::max(world_max(1), itr(1));
+		world_max(2) = std::max(world_max(2), itr(2));
+	}
+	world_max << (transform * (Eigen::Vector4d() << world_max.head<3>(), 1).finished()).head<3>();
+	return world_max;
+}
+
+Eigen::Vector3d Triangle::get_world_min_coord()
+{
+	Eigen::Vector3d world_min = Eigen::Vector3d::Zero();
+	for(Eigen::Vector3d itr : points)
+	{
+		world_min(0) = std::min(world_min(0), itr(0));
+		world_min(1) = std::min(world_min(1), itr(1));
+		world_min(2) = std::min(world_min(2), itr(2));
+	}
+	world_min << (transform * (Eigen::Vector4d() << world_min.head<3>(), 1).finished()).head<3>();
+	return world_min;
+}
+
 double Triangle::collision(Ray &r)
 {
 	double time, gamma, beta, a;

@@ -71,3 +71,23 @@ Eigen::Vector3d Sphere::get_normal(Eigen::Vector3d point)
 			* (Eigen::Vector4d() << normal.head<3>(), 0).finished()).head<3>();
 	return normal.normalized();
 }
+
+Eigen::Vector3d Sphere::get_world_max_coord()
+{
+	Eigen::Vector3d world_max;
+	world_max(0) = center(0) + radius;
+	world_max(1) = center(1) + radius;
+	world_max(2) = center(2) + radius;
+	world_max << (transform * (Eigen::Vector4d() << world_max.head<3>(), 1).finished()).head<3>();
+	return world_max;
+}
+
+Eigen::Vector3d Sphere::get_world_min_coord()
+{
+	Eigen::Vector3d world_min;
+	world_min(0) = center(0) - radius;
+	world_min(1) = center(1) - radius;
+	world_min(2) = center(2) - radius;
+	world_min << (transform * (Eigen::Vector4d() << world_min.head<3>(), 1).finished()).head<3>();
+	return world_min;
+}

@@ -154,7 +154,7 @@ void read_scale(std::stringstream &itr, Shape &shape)
 	scale(0, 0) = x;
 	scale(1, 1) = y;
 	scale(2, 2) = z;
-	shape.inverse_transform *= scale;
+	shape.transform *= scale;
 }
 
 void read_rotation(std::stringstream &itr, Shape &shape)
@@ -167,13 +167,13 @@ void read_rotation(std::stringstream &itr, Shape &shape)
 	y = y * M_PI / 180.0;
 	z = z * M_PI / 180.0;
 	Eigen::Affine3d rotation = create_rotation_matrix(x, y, z);
-	shape.inverse_transform *= rotation.matrix();
+	shape.transform *= rotation.matrix();
 
 	// TODO(kjayakum): Ask professor why I need this "fix"?
-	x = std::abs(shape.inverse_transform(0,1));
-	y = std::abs(shape.inverse_transform(1,0));
-	shape.inverse_transform(1, 0) = std::signbit(shape.inverse_transform(1, 0)) ? -x : x;
-	shape.inverse_transform(0, 1) = std::signbit(shape.inverse_transform(0, 1)) ? -y : y;
+	x = std::abs(shape.transform(0,1));
+	y = std::abs(shape.transform(1,0));
+	shape.transform(1, 0) = std::signbit(shape.transform(1, 0)) ? -x : x;
+	shape.transform(0, 1) = std::signbit(shape.transform(0, 1)) ? -y : y;
 }
 
 void read_translation(std::stringstream &itr, Shape &shape)
@@ -181,13 +181,13 @@ void read_translation(std::stringstream &itr, Shape &shape)
 	// TODO(kjayakum): Ask professor about this scaling?
 	//Eigen::Vector3d translate;
 	// X translation
-	itr >> shape.inverse_transform(0, 3);
+	itr >> shape.transform(0, 3);
 	// Y translation
-	itr >> shape.inverse_transform(1, 3);
+	itr >> shape.transform(1, 3);
 	// Z translation
-	itr >> shape.inverse_transform(2, 3);
+	itr >> shape.transform(2, 3);
 	//Eigen::Affine3d translation(Eigen::Translation3d(translate.head<3>()));
-	//shape.inverse_transform *= translation.matrix();
+	//shape.transform *= translation.matrix();
 }
 
 void read_shape_properties(std::string &input, Shape &shape)
@@ -265,7 +265,7 @@ void read_spheres(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_sphere);
 	}
-	cur_sphere->inverse_transform = cur_sphere->inverse_transform.inverse().eval();
+	cur_sphere->inverse_transform = cur_sphere->transform.inverse();
 	scene.shapes.push_back(cur_sphere);
 }
 
@@ -289,7 +289,7 @@ void read_planes(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_plane);
 	}
-	cur_plane->inverse_transform = cur_plane->inverse_transform.inverse().eval();
+	cur_plane->inverse_transform = cur_plane->transform.inverse();
 	scene.shapes.push_back(cur_plane);
 }
 
@@ -317,7 +317,7 @@ void read_triangles(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_triangle);
 	}
-	cur_triangle->inverse_transform = cur_triangle->inverse_transform.inverse().eval();
+	cur_triangle->inverse_transform = cur_triangle->transform.inverse();
 	scene.shapes.push_back(cur_triangle);
 }
 
@@ -343,7 +343,7 @@ void read_boxes(std::istream &in, std::string line, Scene &scene)
 		replace_markers(property_line, false);
 		read_shape_properties(property_line, *cur_box);
 	}
-	cur_box->inverse_transform = cur_box->inverse_transform.inverse().eval();
+	cur_box->inverse_transform = cur_box->transform.inverse();
 	scene.shapes.push_back(cur_box);
 }
 

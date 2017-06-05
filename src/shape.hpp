@@ -10,7 +10,6 @@
 class Shape
 {
 public:
-	// TODO(kjayakum): Figure out translations/skews and rotations.
 	double ambient;
 	double diffuse;
 	double specular;
@@ -21,6 +20,7 @@ public:
 	double ior;
 	double filter;
 	Eigen::Vector3d color;
+	Eigen::Matrix4d transform;
 	Eigen::Matrix4d inverse_transform;
 
 	virtual void print_type(std::ostream &out) const = 0;
@@ -28,6 +28,8 @@ public:
 	void set_material_defaults();
 	virtual double collision(Ray &r) = 0;
 	virtual Eigen::Vector3d get_normal(Eigen::Vector3d point) = 0;
+	virtual Eigen::Vector3d get_world_max_coord() = 0;
+	virtual Eigen::Vector3d get_world_min_coord() = 0;
 	friend std::ostream &operator<< (std::ostream &out, const Shape &s)
 	{
 		s.print(out);

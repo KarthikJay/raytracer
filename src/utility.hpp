@@ -1,8 +1,6 @@
 #ifndef UTILITY_HPP
 #define UTILITY_HPP
 
-static const double ray_offset = 0.001;
-
 enum class Command : int 
 {
 	RENDER,

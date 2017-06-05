@@ -391,6 +391,9 @@ Eigen::Vector3d get_refraction(const Scene &scene, Ray &ray, int depth = 0, doub
 				final_ior = ior2 / ior;
 			}
 			double discriminant = 1 - (std::pow((final_ior), 2) * (1 - std::pow(d.dot(n), 2)));
+			// Total internal reflection
+			if(discriminant < 0)
+				return Eigen::Vector3d::Zero();
 			t_vec = (final_ior) * (d - (d.dot(n) * n));
 			t_vec = (t_vec - (n * std::sqrt(discriminant))).normalized();
 			refraction = Ray(ray.get_point(time + 0.001), t_vec);
