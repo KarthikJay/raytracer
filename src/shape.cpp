@@ -20,6 +20,7 @@ void Shape::print_material(std::ostream &out) const
 void Shape::set_material_defaults()
 {
 	color = Eigen::Vector3d(0.0, 0.0, 0.0);
+	transform = Eigen::Matrix4d::Identity();
 	inverse_transform = Eigen::Matrix4d::Identity();
 	ambient = 0.0;
 	diffuse = 0.0;
