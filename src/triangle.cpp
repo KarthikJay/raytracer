@@ -80,51 +80,24 @@ double Triangle::collision(Ray &r)
 	double time, gamma, beta, a;
 	Eigen::Matrix3d compute, original;
 
-	original(0, 0) = points[0](0) - points[1](0);
-	original(1, 0) = points[0](1) - points[1](1);
-	original(2, 0) = points[0](2) - points[1](2);
-	original(0, 1) = points[0](0) - points[2](0);
-	original(1, 1) = points[0](1) - points[2](1);
-	original(2, 1) = points[0](2) - points[2](2);
-	original(0, 2) = r.direction(0);
-	original(1, 2) = r.direction(1);
-	original(2, 2) = r.direction(2);
+	original << points[0](0) - points[1](0), points[0](1) - points[1](1), points[0](2) - points[1](2),
+				points[0](0) - points[2](0), points[0](1) - points[2](1), points[0](2) - points[2](2),
+				r.direction(0), r.direction(1), r.direction(2);
 	a = original.determinant();
 
 	// Setup for t
-	compute(0, 0) = points[0](0) - points[1](0);
-	compute(1, 0) = points[0](1) - points[1](1);
-	compute(2, 0) = points[0](2) - points[1](2);
-	compute(0, 1) = points[0](0) - points[2](0);
-	compute(1, 1) = points[0](1) - points[2](1);
-	compute(2, 1) = points[0](2) - points[2](2);
-	compute(0, 2) = points[0](0) - r.origin(0);
-	compute(1, 2) = points[0](1) - r.origin(1);
-	compute(2, 2) = points[0](2) - r.origin(2);
+	compute = original;
+	compute.row(2) << points[0](0) - r.origin(0), points[0](1) - r.origin(1), points[0](2) - r.origin(2);
 	time = compute.determinant() / a;
 
 	// Setup for gamma
-	compute(0, 0) = points[0](0) - points[1](0);
-	compute(1, 0) = points[0](1) - points[1](1);
-	compute(2, 0) = points[0](2) - points[1](2);
-	compute(0, 1) = points[0](0) - r.origin(0);
-	compute(1, 1) = points[0](1) - r.origin(1);
-	compute(2, 1) = points[0](2) - r.origin(2);
-	compute(0, 2) = r.direction(0);
-	compute(1, 2) = r.direction(1);
-	compute(2, 2) = r.direction(2);
+	compute = original;
+	compute.row(1) << points[0](0) - r.origin(0), points[0](1) - r.origin(1), points[0](2) - r.origin(2);
 	gamma = compute.determinant() / a;
 
 	// Setup for beta
-	compute(0, 0) = points[0](0) - r.origin(0);
-	compute(1, 0) = points[0](1) - r.origin(1);
-	compute(2, 0) = points[0](2) - r.origin(2);
-	compute(0, 1) = points[0](0) - points[2](0);
-	compute(1, 1) = points[0](1) - points[2](1);
-	compute(2, 1) = points[0](2) - points[2](2);
-	compute(0, 2) = r.direction(0);
-	compute(1, 2) = r.direction(1);
-	compute(2, 2) = r.direction(2);
+	compute = original;
+	compute.row(0) << points[0](0) - r.origin(0), points[0](1) - r.origin(1), points[0](2) - r.origin(2);
 	beta = compute.determinant() / a;
 
 	time = (time > 0) ? time : 0.0;
