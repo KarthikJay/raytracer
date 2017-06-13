@@ -36,7 +36,6 @@ void replace_markers(std::string &line, bool replace_braces = true)
 	std::replace(line.begin(), line.end(), ',', ' ');
 }
 
-// TODO(kjayakum): Rafactor the below function better
 void read_camera(std::istream &in, Scene &scene, std::string line)
 {
 	std::string temp;
@@ -169,7 +168,6 @@ void read_rotation(std::stringstream &itr, Shape &shape)
 	Eigen::Affine3d rotation = create_rotation_matrix(x, y, z);
 	shape.transform *= rotation.matrix();
 
-	// TODO(kjayakum): Ask professor why I need this "fix"?
 	x = std::abs(shape.transform(0,1));
 	y = std::abs(shape.transform(1,0));
 	shape.transform(1, 0) = std::signbit(shape.transform(1, 0)) ? -x : x;
@@ -178,7 +176,6 @@ void read_rotation(std::stringstream &itr, Shape &shape)
 
 void read_translation(std::stringstream &itr, Shape &shape)
 {
-	// TODO(kjayakum): Ask professor about this scaling?
 	//Eigen::Vector3d translate;
 	// X translation
 	itr >> shape.transform(0, 3);
