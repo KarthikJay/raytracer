@@ -20,6 +20,7 @@ public:
 	Eigen::Vector3d get_normal(Eigen::Vector3d point);
 	Eigen::Vector3d get_world_max_coord();
 	Eigen::Vector3d get_world_min_coord();
+	Eigen::Vector3d get_center();
 private:
 	void print(std::ostream &out) const;
 };

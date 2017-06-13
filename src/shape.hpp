@@ -30,6 +30,7 @@ public:
 	virtual Eigen::Vector3d get_normal(Eigen::Vector3d point) = 0;
 	virtual Eigen::Vector3d get_world_max_coord() = 0;
 	virtual Eigen::Vector3d get_world_min_coord() = 0;
+	virtual Eigen::Vector3d get_center() = 0;
 	friend std::ostream &operator<< (std::ostream &out, const Shape &s)
 	{
 		s.print(out);

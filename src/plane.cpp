@@ -59,3 +59,8 @@ Eigen::Vector3d Plane::get_world_min_coord()
 {
 	return Eigen::Vector3d::Zero();
 }
+
+Eigen::Vector3d Plane::get_center()
+{
+	return Eigen::Vector3d::Zero();
+}

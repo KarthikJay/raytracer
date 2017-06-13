@@ -106,3 +106,11 @@ double Triangle::collision(Ray &r)
 
 	return time;
 }
+
+Eigen::Vector3d Triangle::get_center()
+{
+	double center_x = (points[0](0) + points[1](0) + points[2](0)) / 3;
+	double center_y = (points[0](1) + points[1](1) + points[2](1)) / 3;
+	double center_z = (points[0](2) + points[1](2) + points[2](1)) / 3;
+	return Eigen::Vector3d(center_x, center_y, center_z);
+}

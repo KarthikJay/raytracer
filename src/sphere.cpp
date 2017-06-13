@@ -89,3 +89,8 @@ Eigen::Vector3d Sphere::get_world_min_coord()
 	world_min << (transform * (Eigen::Vector4d() << world_min.head<3>(), 1).finished()).head<3>();
 	return world_min;
 }
+
+Eigen::Vector3d Sphere::get_center()
+{
+	return center;
+}

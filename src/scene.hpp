@@ -20,7 +20,6 @@ public:
 	uint height;
 
 	Scene();
-	// Print out human readable format
 	void print_visual(std::ostream &out) const;
 	void set_scene_dimensions(uint width, uint height);
 	friend std::istream &operator>> (std::istream &in, Scene &scene);

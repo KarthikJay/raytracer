@@ -108,3 +108,23 @@ Eigen::Vector3d Box::get_world_min_coord()
 	world_min << (transform * (Eigen::Vector4d() << world_min.head<3>(), 1).finished()).head<3>();
 	return world_min;
 }
+
+double Box::get_width() const
+{
+	return max(0) - min(0);
+}
+
+double Box::get_height() const
+{
+	return max(1) - min(1);
+}
+
+double Box::get_depth() const
+{
+	return max(2) - min(2);
+}
+
+Eigen::Vector3d Box::get_center()
+{
+	return Eigen::Vector3d(get_width() / 2, get_height() / 2, get_depth() / 2);
+}
