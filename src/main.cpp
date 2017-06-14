@@ -18,6 +18,7 @@
 #include "camera.hpp"
 #include "utility.hpp"
 #include "scene.hpp"
+#include "bvh.hpp"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
@@ -31,10 +32,10 @@ T clamp(const T n, const T lower, const T upper)
 	return std::max(lower, std::min(n, upper));
 }
 
-Ray get_pixel_ray(const Scene &scene, uint x, uint y, uint sub_pixel = 0)
+Ray get_pixel_ray(const Scene &scene, uint x, uint y, double sub_pixel)
 {
-	double u = -0.5 + ((x + 0.5 + sub_pixel) / scene.width);
-	double v = -0.5 + ((y + 0.5 + sub_pixel) / scene.height);
+	double u = -0.5 + ((x + sub_pixel) / scene.width);
+	double v = -0.5 + ((y + sub_pixel) / scene.height);
 	double w = -1;
 	Eigen::Vector3d look = scene.view.right.cross(scene.view.up.normalized());
 	Eigen::Vector3d dis = ((scene.view.right * u)
@@ -530,7 +531,7 @@ Eigen::Vector3d get_pixel_color(const Scene &scene, uint x, uint y, uint sample_
 	Eigen::Vector3d pixel_color = Eigen::Vector3d::Zero();
 	for(uint num_sample = 0; num_sample < sample_size; num_sample++)
 	{
-		double sub_pixel = -0.5 + ((num_sample + 0.5) / sample_size);
+		double sub_pixel = (num_sample + 0.5) / sample_size;
 		Ray pixel_ray = get_pixel_ray(scene, x, y, sub_pixel);
 		std::shared_ptr<Shape> hit_shape = get_shape(scene, pixel_ray);
 		Eigen::Vector3d local_color = blinn_phong(scene, pixel_ray, hit_shape);
@@ -557,6 +558,13 @@ Eigen::Vector3d get_pixel_color(const Scene &scene, uint x, uint y, uint sample_
 	pixel_color /= sample_size;
 	return pixel_color;
 }
+
+/*
+Eigen::Vector3d get_ambient_occlusion(const Scene &scene, uint x, uint y, uint sample_size = 1)
+{
+
+}
+*/
 
 uint get_shape_id(const Scene &scene, std::shared_ptr<Shape> search)
 {
@@ -696,6 +704,25 @@ void render(const Scene &scene, uint sample_size, bool use_alt = false)
 	delete[] data;
 }
 
+BVH create_sds(Scene &scene)
+{
+	BVH root;
+	root.build_tree(scene.shapes, 0);
+
+	return root;
+}
+
+/*
+std::shared_ptr<Shape> get_shape_sds(BVH tree, Ray &pixel_ray)
+{
+	BVH itr;
+	if(tree.bounding_box.collision(pixel_ray) != 0)
+	{
+		
+	}
+}
+*/
+
 int main(int argc, char *argv[])
 {
 	Scene scene;
@@ -741,7 +768,7 @@ int main(int argc, char *argv[])
 			std::cout << "Pixel: [" << options[2] << ", " << options[3] << "] ";
 			// TODO(kjayakum): Add Pixel color final print out
 			std::cout << "Color: (" << std::endl;
-			pixel_ray = get_pixel_ray(scene, options[2], options[3]);
+			pixel_ray = get_pixel_ray(scene, options[2], options[3], 1);
 			printrays(scene, pixel_ray);
 			break;
 	}
