@@ -12,7 +12,7 @@ class BVH
 public:
 	BVH *left;
 	BVH *right;
-	std::shared_ptr<Shape> shapes;
+	std::vector<std::shared_ptr<Shape>> shapes;
 	AABB bounding_box;
 	BVH();
 	void build_tree(std::vector<std::shared_ptr<Shape>> &shapes, uint axis);
