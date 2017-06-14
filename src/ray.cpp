@@ -14,6 +14,9 @@ Ray::Ray(const Eigen::Vector3d &origin, const Eigen::Vector3d &direction)
 
 std::ostream &operator<< (std::ostream &out, const Ray &r)
 {
+	Eigen::IOFormat SpaceFormat(4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
+	out << "Ray: {" << r.origin.format(SpaceFormat) << "} -> {";
+	out << r.direction.format(SpaceFormat) << "}" << std::endl;
 	return out;
 }
 
