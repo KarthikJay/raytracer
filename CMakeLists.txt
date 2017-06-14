@@ -34,5 +34,5 @@ endif()
 
 # Compiler specific flags
 if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "-02")  # Optimize Level 2
+#  set(CMAKE_CXX_FLAGS "-O2")  # Optimize Level 2
 endif()
