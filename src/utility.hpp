@@ -1,6 +1,8 @@
 #ifndef UTILITY_HPP
 #define UTILITY_HPP
 
+#include "scene.hpp"
+
 enum class Command : int 
 {
 	RENDER,
@@ -19,6 +21,7 @@ enum class Flags : int
 	SPACIAL_DATA_STRUCTURES
 };
 
+Scene parse_scene(char *filename);
 void parse_optional(int argc, char *argv[], std::vector<unsigned int> &optional);
 Command is_valid_command(int argc, char *argv[], std::vector<uint> &options);
 uint get_supersample(int argc, char *argv[]);

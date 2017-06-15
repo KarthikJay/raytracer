@@ -65,6 +65,17 @@ void get_flags(int argc, char *argv[], std::array<bool, 3> &flags)
 	}
 }
 
+Scene parse_scene(char *filename)
+{
+	Scene world;
+	std::ifstream input_file;
+	input_file.open(filename);
+	input_file >> world;
+	input_file.close();
+
+	return world;
+}
+
 Command is_valid_command(int argc, char *argv[], std::vector<uint> &options)
 {
 	std::string cur;
