@@ -21,7 +21,9 @@ void remove_comment(std::string &line)
 {
 	std::size_t pos = line.find("//");
 	if(pos != std::string::npos)
+	{
 		line.resize(pos);
+	}
 }
 
 void replace_markers(std::string &line, bool replace_braces = true)
@@ -103,7 +105,9 @@ void read_pigment(std::stringstream &itr, Shape &shape)
 	itr >> shape.color(1);
 	itr >> shape.color(2);
 	if(temp == "rgbf")
+	{
 		itr >> shape.filter;
+	}
 }
 
 void read_finish(std::stringstream &itr, Shape &shape)
@@ -113,21 +117,37 @@ void read_finish(std::stringstream &itr, Shape &shape)
 	{
 		itr >> temp;
 		if(temp == "ambient")
+		{
 			itr >> shape.ambient;
+		}
 		else if(temp == "diffuse")
+		{
 			itr >> shape.diffuse;
+		}
 		else if(temp == "specular")
+		{
 			itr >> shape.specular;
+		}
 		else if(temp == "roughness")
+		{
 			itr >> shape.roughness;
+		}
 		else if(temp == "reflection")
+		{
 			itr >> shape.reflection;
+		}
 		else if(temp == "refraction")
+		{
 			itr >> shape.refraction;
+		}
 		else if(temp == "metallic")
+		{
 			itr >> shape.metallic;
+		}
 		else if(temp == "ior")
+		{
 			itr >> shape.ior;
+		}
 	}
 }
 
@@ -196,9 +216,13 @@ void read_shape_properties(std::string &input, Shape &shape)
 	std::stringstream ss(input);
 	ss >> temp;
 	if(temp == "pigment")
+	{
 		read_pigment(ss, shape);
+	}
 	else if(temp == "finish")
+	{
 		read_finish(ss, shape);
+	}
 	else if(temp == "scale")
 	{
 		read_scale(ss, shape);
@@ -213,7 +237,9 @@ void read_shape_properties(std::string &input, Shape &shape)
 	}
 
 	if(second_brace != std::string::npos)
+	{
 		input.erase(input.begin(), input.begin() + second_brace);
+	}
 }
 
 // Light Sources are assumed to be single line
@@ -352,17 +378,29 @@ std::istream &operator>> (std::istream &in, Scene &scene)
 		remove_comment(line);
 		replace_markers(line);
 		if(line.find("camera") != std::string::npos)
+		{
 			read_camera(in, scene, line);
+		}
 		else if(line.find("light_source") != std::string::npos)
+		{
 			read_light(line, scene);
+		}
 		else if(line.find("sphere") != std::string::npos)
+		{
 			read_spheres(in, line, scene);
+		}
 		else if(line.find("plane") != std::string::npos)
+		{
 			read_planes(in, line, scene);
+		}
 		else if(line.find("triangle") != std::string::npos)
+		{
 			read_triangles(in, line, scene);
+		}
 		else if(line.find("box") != std::string::npos)
+		{
 			read_boxes(in, line, scene);
+		}
 	}
 	return in;
 }
