@@ -10,9 +10,9 @@
 
 #include "utility.hpp"
 
-void parse_optional(int argc, char *argv[], std::vector<unsigned int> &optional)
+void parse_uint_options(int argc, char *argv[], std::vector<unsigned int> &optional)
 {
-	unsigned int temp;
+	uint temp;
 	for (int i = 3; i < argc; i++)
 	{
 		std::stringstream ss(argv[i]);

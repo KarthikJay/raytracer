@@ -22,7 +22,7 @@ enum class Flags : int
 };
 
 Scene parse_scene(char *filename);
-void parse_optional(int argc, char *argv[], std::vector<unsigned int> &optional);
+void parse_uint_options(int argc, char *argv[], std::vector<unsigned int> &options);
 Command is_valid_command(int argc, char *argv[], std::vector<uint> &options);
 uint get_supersample(int argc, char *argv[]);
 void get_flags(int argc, char *argv[], std::array<bool, 3> &flags);
