@@ -526,6 +526,93 @@ Eigen::Vector3d get_pixel_color(const Scene &scene, Ray &pixel_ray)
 	return pixel_color;
 }
 
+// For sampling technique:
+// http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html#sec-SourceCode
+float radicalInverse_VdC(uint bits)
+{
+	bits = (bits << 16u) | (bits >> 16u);
+	bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+	bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+	bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+	bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+
+	return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+Eigen::Vector2d hammersley2d(uint i, uint num_samples)
+{
+	return Eigen::Vector2d(double(i)/double(num_samples), radicalInverse_VdC(i));
+}
+
+// No Z value
+Eigen::Vector3d hammersley3d(uint i, uint num_samples)
+{
+	return Eigen::Vector3d(double(i)/double(num_samples), radicalInverse_VdC(i), 0.0);
+}
+
+Eigen::Vector3d hemisphereSample_uniform(double u, double v)
+{
+	double phi = v * 2.0 * M_PI;
+	double cosTheta = 1.0 - u;
+	double sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+
+	return Eigen::Vector3d(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+}
+
+Eigen::Vector3d hemisphereSample_cos(double u, double v)
+{
+	double phi = v * 2.0 * M_PI;
+	double cosTheta = sqrt(1.0 - u);
+	double sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+
+	return Eigen::Vector3d(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+}
+
+Eigen::Vector3d get_ambient_occlusion(const Scene &scene, uint x, uint y)
+{
+	Eigen::Vector3d white(1.0, 1.0, 1.0);
+	Ray pixel_ray = get_pixel_ray(scene, x, y, 0.5);
+	uint num_samples = 5;
+	uint num_hits = 1;
+	std::shared_ptr<Shape> hit_shape = get_shape(scene, pixel_ray);
+	if(!hit_shape)
+	{
+		return white;
+	}
+
+	double time = get_intersection_time(hit_shape, pixel_ray);
+	Eigen::Vector3d new_origin = pixel_ray.get_point(time);
+	Eigen::Vector3d normal = hit_shape->get_normal(new_origin).normalized();
+	
+	for(uint i = 0; i < num_samples; i++)
+	{
+		Eigen::Vector3d rand_3d = hammersley3d(i, num_samples).normalized();
+		Eigen::Vector2d rand_2d = hammersley2d(i, num_samples);
+		Eigen::Vector3d random_sample = hemisphereSample_uniform(rand_2d(0), rand_2d(1)).normalized();
+		Eigen::Vector3d tangent = (rand_3d - normal * rand_3d.dot(normal)).normalized();
+		Eigen::Vector3d bitangent = normal.cross(tangent);
+		Eigen::Matrix3d tbn;
+		tbn << tangent.head<3>(), bitangent.head<3>(), normal.head<3>();
+
+		random_sample = tbn * random_sample;
+		random_sample = random_sample + new_origin;
+		Eigen::Vector3d sample_dir = (random_sample - new_origin).normalized();
+		Ray sample_ray;
+		sample_ray.direction = sample_dir;
+		sample_ray.origin = new_origin;
+
+		std::shared_ptr<Shape> hit2 = get_shape(scene, sample_ray);
+		if(hit2)
+		{
+			double t = get_intersection_time(hit2, sample_ray);
+			num_hits = t > 0.5 ? num_hits : num_hits + 1;
+		}
+	}
+	white /= num_hits;
+
+	return white;
+}
+
 Eigen::Vector3d get_pixel_color(const Scene &scene, uint x, uint y, uint sample_size = 1)
 {
 	Eigen::Vector3d pixel_color = Eigen::Vector3d::Zero();
@@ -558,13 +645,6 @@ Eigen::Vector3d get_pixel_color(const Scene &scene, uint x, uint y, uint sample_
 	pixel_color /= sample_size;
 	return pixel_color;
 }
-
-/*
-Eigen::Vector3d get_ambient_occlusion(const Scene &scene, uint x, uint y, uint sample_size = 1)
-{
-
-}
-*/
 
 uint get_shape_id(const Scene &scene, std::shared_ptr<Shape> search)
 {
@@ -687,7 +767,8 @@ void render(const Scene &scene, uint sample_size, bool use_alt = false)
 		for(unsigned int x = 0; x < scene.width; ++x)
 		{
 			unsigned char red = 0, green = 0, blue = 0;
-			Eigen::Vector3d pixel_color = get_pixel_color(scene, x, y, sample_size);
+			//Eigen::Vector3d pixel_color = get_pixel_color(scene, x, y, sample_size);
+			Eigen::Vector3d pixel_color = get_ambient_occlusion(scene, x ,y);
 
 			red = (unsigned char) std::round(pixel_color(0) * 255.f);
 			green = (unsigned char) std::round(pixel_color(1) * 255.f);
@@ -697,7 +778,7 @@ void render(const Scene &scene, uint sample_size, bool use_alt = false)
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 2] = blue;
 		}
 		// Debug to check that render is happening
-		// std::cout << "Y value is now: " << y << std::endl;
+		std::cout << "Y value is now: " << y << std::endl;
 	}
 
 	stbi_write_png(filename.c_str(), scene.width, scene.height, num_channels, data, scene.width * num_channels);
@@ -715,8 +796,8 @@ BVH create_sds(Scene &scene)
 /*
 std::shared_ptr<Shape> get_shape_sds(BVH tree, Ray &pixel_ray)
 {
-	BVH itr;
-	if(tree.bounding_box.collision(pixel_ray) != 0)
+	BVH itr = tree;
+	if(itr.bounding_box.collision(pixel_ray) != 0)
 	{
 		
 	}
@@ -728,16 +809,13 @@ int main(int argc, char *argv[])
 	Scene scene;
 	Camera view;
 	Ray pixel_ray;
-	std::ifstream input_file;
 	std::vector<uint> options;
 	std::array<bool, 3> flags;
 
-	input_file.open(argv[2]);
-	input_file >> scene;
-	input_file.close();
-	parse_optional(argc, argv, options);
+	parse_uint_options(argc, argv, options);
 	get_flags(argc, argv, flags);
 	Command type = is_valid_command(argc, argv, options);
+	scene = parse_scene(argv[2]);
 
 	switch(type)
 	{
@@ -768,7 +846,7 @@ int main(int argc, char *argv[])
 			std::cout << "Pixel: [" << options[2] << ", " << options[3] << "] ";
 			// TODO(kjayakum): Add Pixel color final print out
 			std::cout << "Color: (" << std::endl;
-			pixel_ray = get_pixel_ray(scene, options[2], options[3], 1);
+			pixel_ray = get_pixel_ray(scene, options[2], options[3], 0.5);
 			printrays(scene, pixel_ray);
 			break;
 	}
