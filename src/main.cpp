@@ -778,7 +778,7 @@ void render(const Scene &scene, uint sample_size, bool use_alt = false)
 			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 2] = blue;
 		}
 		// Debug to check that render is happening
-		std::cout << "Y value is now: " << y << std::endl;
+		// std::cout << "Y value is now: " << y << std::endl;
 	}
 
 	stbi_write_png(filename.c_str(), scene.width, scene.height, num_channels, data, scene.width * num_channels);
