@@ -1,5 +1,5 @@
 # Raytracer
-This is a C++ raytracer I developed for CPE 473 at Cal Poly.
+This is a C++ raytracer developed for CPE 473 at Cal Poly.
 
 ## Features
 * POV-Ray file parsing
@@ -18,35 +18,9 @@ This is a C++ raytracer I developed for CPE 473 at Cal Poly.
 * Ambient Occlusion
 
 ## Sample Images
-### Ambient Occlusion Maps
-Bunny:
+### Box Reflection
 
-![Image of BunnyAO](/images/bunny_ao.png)
-
-Valentine:
-
-![Image of ValentineAOMap](/images/valentine_ao_map.png)
-
-Simple Cam 2:
-
-![Image of SimpCam2AO](/images/simp_cam2_map.png)
-
-### Images with Ambient Occlusion
-Valentine with no Ambient Occlusion:
-
-![Image of ValentineNoAO](/images/valentine_no_ao.png)
-
-Valentine with Ambient Occlusion:
-
-![Image of ValentineAO](/images/valentine_ao.png)
-
-Simple Cam 2 with no Ambient Occlusion:
-
-![Image of SimpleCam2NoAO](/images/simp_cam2.png)
-
-Simple Cam 2 with Ambient Occlusion:
-
-![Image of SimpleCam2AO](/images/simp_cam2_ao.png)
+![Image of BunnyAO](/images/box_reflect.png)
 
 ## Resources
 [Hammersley Hemisphere Distribution](http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html#subsec-pointquality)
@@ -61,6 +35,8 @@ Simple Cam 2 with Ambient Occlusion:
 [CMake 3.5+](https://cmake.org)
 
 [C++11 Compiler](https://en.wikipedia.org/wiki/List_of_compilers#C.2B.2B_compilers)
+
+[STB Image Writer](https://github.com/nothings/stb/blob/master/stb_image.h)
 
 ## Installation
 1. Clone or Fork this repo
