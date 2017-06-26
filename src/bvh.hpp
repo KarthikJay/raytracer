@@ -15,7 +15,7 @@ public:
 	std::vector<std::shared_ptr<Shape>> shapes;
 	AABB bounding_box;
 	BVH();
-	void build_tree(std::vector<std::shared_ptr<Shape>> &shapes, uint axis);
+	void build_tree(uint axis);
 
 private:
 };

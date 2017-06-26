@@ -44,25 +44,27 @@ void sort_shapes_on_axis(std::vector<std::shared_ptr<Shape>> &shapes, uint axis)
 }
 
 // TODO(kjayakum): scan for planes in the shape list, and remove them!
-void BVH::build_tree(std::vector<std::shared_ptr<Shape>> &shapes, uint axis)
+void BVH::build_tree(uint axis)
 {
+	sort_shapes_on_axis(shapes, axis);
 	std::size_t split = std::ceil(shapes.size() / 2);
 	std::vector<std::shared_ptr<Shape>> left_half =
 		std::vector<std::shared_ptr<Shape>>(shapes.begin(), shapes.begin() + split);
 	std::vector<std::shared_ptr<Shape>> right_half =
 		std::vector<std::shared_ptr<Shape>>(shapes.begin() + split, shapes.end());
+
 	if(shapes.size() <= 1)
 	{
-		this->shapes = shapes;
-		bounding_box.generateAABB(this->shapes);
+		bounding_box.generateAABB(shapes);
 		return;
 	}
 
 	left = new BVH();
+	left->shapes = left_half;
 	right = new BVH();
+	right->shapes = right_half;
 
-	left->build_tree(left_half, (axis + 1) % 3);
-	right->build_tree(right_half, (axis + 1) % 3);
-	this->shapes = shapes;
-	bounding_box.generateAABB(this->shapes);
+	left->build_tree((axis + 1) % 3);
+	right->build_tree((axis + 1) % 3);
+	bounding_box.generateAABB(shapes);
 }

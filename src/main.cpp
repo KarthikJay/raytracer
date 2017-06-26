@@ -767,8 +767,8 @@ void render(const Scene &scene, uint sample_size, bool use_alt = false)
 		for(unsigned int x = 0; x < scene.width; ++x)
 		{
 			unsigned char red = 0, green = 0, blue = 0;
-			//Eigen::Vector3d pixel_color = get_pixel_color(scene, x, y, sample_size);
-			Eigen::Vector3d pixel_color = get_ambient_occlusion(scene, x ,y);
+			Eigen::Vector3d pixel_color = get_pixel_color(scene, x, y, sample_size);
+			//Eigen::Vector3d pixel_color = get_ambient_occlusion(scene, x ,y);
 
 			red = (unsigned char) std::round(pixel_color(0) * 255.f);
 			green = (unsigned char) std::round(pixel_color(1) * 255.f);
@@ -785,24 +785,153 @@ void render(const Scene &scene, uint sample_size, bool use_alt = false)
 	delete[] data;
 }
 
-BVH create_sds(Scene &scene)
+BVH create_sds(const Scene &scene)
 {
 	BVH root;
-	root.build_tree(scene.shapes, 0);
+	root.shapes = scene.shapes;
+	root.build_tree(0);
 
 	return root;
 }
 
-/*
-std::shared_ptr<Shape> get_shape_sds(BVH tree, Ray &pixel_ray)
+std::shared_ptr<Shape> get_shape_using_list(const std::vector<std::shared_ptr<Shape>> &list, Ray &ray)
 {
-	BVH itr = tree;
-	if(itr.bounding_box.collision(pixel_ray) != 0)
+	std::shared_ptr<Shape> hit_object = NULL;
+	bool collision = false;
+	int select = 0;
+	double t = std::numeric_limits<double>::max();
+
+	for(uint i = 0; i < list.size(); i++)
 	{
-		
+		double temp = list[i]->collision(ray);
+		if(temp > 0 && temp < t)
+		{
+			collision = true;
+			select = i;
+			t = temp;
+		}
 	}
+
+	if(collision)
+	{
+		hit_object = list[select];
+	}
+
+	return hit_object;
 }
-*/
+
+std::shared_ptr<Shape> get_shape_sds(BVH *tree, Ray &pixel_ray)
+{
+	std::shared_ptr<Shape> left_hit = NULL;
+	std::shared_ptr<Shape> right_hit = NULL;
+
+	if(tree->bounding_box.collision(pixel_ray) > 0)
+	{
+		if(tree->left)
+		{
+			left_hit = get_shape_sds(tree->left, pixel_ray);
+		}
+		else
+		{
+			left_hit = get_shape_using_list(tree->shapes, pixel_ray);
+		}
+
+		if(tree->right)
+		{
+			if(tree->left)
+			{
+				left_hit = get_shape_sds(tree->left, pixel_ray);
+			}
+			if(tree->right)
+			{
+				right_hit = get_shape_sds(tree->right, pixel_ray);
+			}
+			else
+			{
+				right_hit = get_shape_using_list(tree->shapes, pixel_ray);
+			}
+		}
+
+		if(left_hit && right_hit)
+		{
+			return get_intersection_time(left_hit, pixel_ray) < get_intersection_time(right_hit, pixel_ray)
+					? left_hit : right_hit;
+		}
+		else if(left_hit)
+		{
+			return left_hit;
+		}
+		else if(right_hit)
+		{
+			return right_hit;
+		}
+	}
+
+	return NULL;
+}
+
+Eigen::Vector3d get_pixel_color_sds(const Scene &scene, uint x, uint y, uint sample_size = 1)
+{
+	Eigen::Vector3d pixel_color = Eigen::Vector3d::Zero();
+	for(uint num_sample = 0; num_sample < sample_size; num_sample++)
+	{
+		double sub_pixel = (num_sample + 0.5) / sample_size;
+		Ray pixel_ray = get_pixel_ray(scene, x, y, sub_pixel);
+		BVH root = create_sds(scene);
+		std::shared_ptr<Shape> hit_shape = get_shape_sds(&root, pixel_ray);
+		Eigen::Vector3d local_color = blinn_phong(scene, pixel_ray, hit_shape);
+		Eigen::Vector3d reflection_color = get_reflection(scene, pixel_ray);
+		Eigen::Vector3d refraction_color = get_refraction(scene, pixel_ray);
+		Eigen::Vector3d sample_color;
+
+		if(hit_shape)
+		{
+			double local_contribution = get_local_contribution(hit_shape);
+			double reflection_contribution = get_reflection_contribution(hit_shape);
+			double refraction_contribution = hit_shape->filter;
+			sample_color = local_contribution * local_color
+						+ reflection_contribution * reflection_color
+						+ refraction_contribution * refraction_color;
+		}
+		else
+			sample_color = local_color + reflection_color + refraction_color;
+		sample_color(0) = clamp(sample_color(0), 0.0, 1.0);
+		sample_color(1) = clamp(sample_color(1), 0.0, 1.0);
+		sample_color(2) = clamp(sample_color(2), 0.0, 1.0);
+		pixel_color += sample_color;
+	}
+	pixel_color /= sample_size;
+	return pixel_color;
+}
+
+void render_sds(const Scene &scene, uint sample_size, bool use_alt = false)
+{
+	const int num_channels = 3;
+	const std::string filename = "output.png";
+	unsigned char *data = new unsigned char[scene.width * scene.height * num_channels];
+
+	for(unsigned int y = 0; y < scene.height; ++y)
+	{
+		for(unsigned int x = 0; x < scene.width; ++x)
+		{
+			unsigned char red = 0, green = 0, blue = 0;
+			Eigen::Vector3d pixel_color = get_pixel_color_sds(scene, x, y, sample_size);
+			//Eigen::Vector3d pixel_color = get_ambient_occlusion(scene, x ,y);
+
+			red = (unsigned char) std::round(pixel_color(0) * 255.f);
+			green = (unsigned char) std::round(pixel_color(1) * 255.f);
+			blue = (unsigned char) std::round(pixel_color(2) * 255.f);
+			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 0] = red;
+			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 1] = green;
+			data[(scene.width * num_channels) * (scene.height - 1 - y) + num_channels * x + 2] = blue;
+		}
+		// Debug to check that render is happening
+		//std::cout << "Y value is now: " << y << std::endl;
+	}
+
+	stbi_write_png(filename.c_str(), scene.width, scene.height, num_channels, data, scene.width * num_channels);
+	delete[] data;
+}
 
 int main(int argc, char *argv[])
 {
@@ -821,7 +950,15 @@ int main(int argc, char *argv[])
 	{
 		case Command::RENDER:
 			scene.set_scene_dimensions(options[0], options[1]);
-			render(scene, get_supersample(argc, argv));
+			if(flags[(int) Flags::SPACIAL_DATA_STRUCTURES])
+			{
+				render_sds(scene, get_supersample(argc, argv));
+			}
+			else
+			{
+				render(scene, get_supersample(argc, argv));
+			}
+			//render(scene, get_supersample(argc, argv));
 			break;
 		case Command::FIRSTHIT:
 			scene.set_scene_dimensions(options[0], options[1]);
